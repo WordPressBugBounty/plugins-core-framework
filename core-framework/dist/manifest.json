@@ -1,6 +1,6 @@
 {
   "../../../node_modules/.pnpm/canvg@3.0.10/node_modules/canvg/lib/index.es.js": {
-    "file": "index.es-eb65c0d7.js",
+    "file": "index.es-558740a9.js",
     "imports": [
       "main.tsx"
     ],
@@ -13,18 +13,18 @@
     "src": "../../../node_modules/.pnpm/dompurify@2.4.7/node_modules/dompurify/dist/purify.es.js"
   },
   "main.css": {
-    "file": "main-ed200b4d.css",
+    "file": "main-e8809066.css",
     "src": "main.css"
   },
   "main.tsx": {
     "css": [
-      "main-ed200b4d.css"
+      "main-e8809066.css"
     ],
     "dynamicImports": [
       "../../../node_modules/.pnpm/dompurify@2.4.7/node_modules/dompurify/dist/purify.es.js",
       "../../../node_modules/.pnpm/canvg@3.0.10/node_modules/canvg/lib/index.es.js"
     ],
-    "file": "main-eafa28d3.js",
+    "file": "main-3e72e876.js",
     "isEntry": true,
     "src": "main.tsx"
   }
