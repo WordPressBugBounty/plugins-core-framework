@@ -151,7 +151,7 @@ class Functions extends Base {
 				continue;
 			}
 
-			$id                      = sanitize_title( $new_core_selector_array ) . self::CORE_SUFFIX;
+			$id                      = $new_core_selector_array === 'z--1' ? 'z--1_c' : sanitize_title( $new_core_selector_array ) . self::CORE_SUFFIX;
 			$core_prev_classes[]     = array(
 				'name'     => $new_core_selector_array,
 				'id'       => $id,

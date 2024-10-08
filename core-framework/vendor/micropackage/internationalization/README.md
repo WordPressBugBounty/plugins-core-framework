@@ -22,7 +22,7 @@ This package is compatible with [DocHooks library](https://github.com/micropacka
 
 ## 💾 Installation
 
-``` bash
+```bash
 composer require micropackage/internationalization
 ```
 

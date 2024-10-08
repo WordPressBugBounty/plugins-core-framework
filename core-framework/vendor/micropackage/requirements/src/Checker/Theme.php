@@ -46,7 +46,5 @@ class Theme extends Abstracts\Checker {
 			// Translators: theme name.
 			$this->add_error( sprintf( __( 'Required theme: %s', Requirements::$textdomain ), $value['name'] ) );
 		}
-
 	}
-
 }

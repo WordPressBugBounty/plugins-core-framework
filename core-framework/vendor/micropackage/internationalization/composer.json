@@ -21,8 +21,8 @@
 		"wp-coding-standards/wpcs": "^2.0"
 	},
 	"autoload": {
-		"psr-4" : {
-			"Micropackage\\Internationalization\\" : "src"
+		"psr-4": {
+			"Micropackage\\Internationalization\\": "src"
 		}
 	}
 }

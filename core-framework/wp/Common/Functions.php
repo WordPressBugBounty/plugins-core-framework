@@ -67,6 +67,7 @@ class Functions extends Base {
 			'bricks'      => CoreFrameworkBricks()->is_bricks(),
 			'oxygen'      => CoreFrameworkOxygen()->is_oxygen(),
 			'gutenberg'   => false,
+			'figma'       => false,
 			'selected_id' => '',
 			'delete_data' => false,
 		);
@@ -611,5 +612,9 @@ class Functions extends Base {
 		if ( \is_plugin_active( 'litespeed-cache/litespeed-cache.php' ) ) {
 			\do_action( 'litespeed_purge_all' );
 		}
+	}
+
+	public function get_random_id( $length = 26 ) {
+		return substr( str_shuffle( '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ' ), 0, $length );
 	}
 }

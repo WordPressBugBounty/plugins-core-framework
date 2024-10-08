@@ -29,6 +29,17 @@ class Helper {
 	public function __construct() {
 	}
 
+	public function getPresetId(): ?string {
+		$options = get_option( 'core_framework_main', array() );
+		return $options['selected_id'] ?? null;
+	}
+
+	public function setPresetId( string $preset_id ): void {
+		$options                = get_option( 'core_framework_main', array() );
+		$options['selected_id'] = $preset_id;
+		update_option( 'core_framework_main', $options );
+	}
+
 	/**
 	 * Load selected preset from database
 	 *

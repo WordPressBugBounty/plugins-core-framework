@@ -78,7 +78,5 @@ class Plugins extends Abstracts\Checker {
 				);
 			}
 		}
-
 	}
-
 }

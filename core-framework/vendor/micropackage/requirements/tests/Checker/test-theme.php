@@ -30,14 +30,24 @@ class TestTheme extends \WP_UnitTestCase {
 	}
 
 	public function bad_params() {
-		return [
-			[ '5.3' ],
-			[ 1 ],
-			[ true ],
-			[ [ 'slug', 'name' ] ],
-			[ [ 'slug' => 'slug', 'name' ] ],
-			[ [ 'slug', 'name' => 'name' ] ],
-		];
+		return array(
+			array( '5.3' ),
+			array( 1 ),
+			array( true ),
+			array( array( 'slug', 'name' ) ),
+			array(
+				array(
+					'slug' => 'slug',
+					'name',
+				),
+			),
+			array(
+				array(
+					'slug',
+					'name' => 'name',
+				),
+			),
+		);
 	}
 
 	public function test_get_name_should_return_valid_name() {
@@ -57,36 +67,39 @@ class TestTheme extends \WP_UnitTestCase {
 	 */
 	public function test_check_should_accept_array_with_slug_and_name_requirement() {
 
-		$this->checker->check( [
-			'slug' => 'test',
-			'name' => 'Test',
-		] );
-
+		$this->checker->check(
+			array(
+				'slug' => 'test',
+				'name' => 'Test',
+			)
+		);
 	}
 
 	public function test_check_should_pass_if_current_theme_slug_matches_requirement() {
 
-		$this->checker->check( [
-			'slug' => 'default',
-			'name' => 'Default',
-		] );
+		$this->checker->check(
+			array(
+				'slug' => 'default',
+				'name' => 'Default',
+			)
+		);
 
 		$this->assertEmpty( $this->checker->get_errors() );
 	}
 
 	public function test_check_should_fail_if_current_theme_slug_doesnt_match_requirement() {
 
-		$this->checker->check( [
-			'slug' => 'not-existing',
-			'name' => 'Ups',
-		] );
+		$this->checker->check(
+			array(
+				'slug' => 'not-existing',
+				'name' => 'Ups',
+			)
+		);
 
 		$errors = $this->checker->get_errors();
 
 		$this->assertNotEmpty( $errors );
 		$this->assertCount( 1, $errors );
 		$this->assertContains( 'Ups', $errors[0] );
-
 	}
-
 }

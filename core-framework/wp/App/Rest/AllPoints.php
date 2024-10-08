@@ -26,6 +26,23 @@ use CoreFramework\Helper;
 class AllPoints extends Base {
 
 	/**
+	 * Check if an addon is enabled and licensed
+	 *
+	 * @param string $addon The addon name (e.g., 'oxygen', 'bricks', 'gutenberg')
+	 * @return bool Whether the addon is enabled and licensed
+	 */
+	private function is_addon_enabled( $addon ) {
+		$options = get_option( 'core_framework_main', array() );
+
+		if ( $addon === 'gutenberg' ) {
+			return isset( $options[ $addon ] ) && $options[ $addon ];
+		}
+
+		$license_key = get_option( "core_framework_{$addon}_license_key", '' );
+		return isset( $options[ $addon ] ) && $options[ $addon ] && ! empty( $license_key );
+	}
+
+	/**
 	 * Initialize the class.
 	 *
 	 * @since 0.0.0
@@ -64,6 +81,9 @@ class AllPoints extends Base {
 				'type' => 'boolean',
 			),
 			'gutenberg'                            => array(
+				'type' => 'boolean',
+			),
+			'figma'                            		 => array(
 				'type' => 'boolean',
 			),
 			'selected_id'                          => array(
@@ -202,6 +222,34 @@ class AllPoints extends Base {
 	}
 
 	/**
+	 * Verify API Key
+	 *
+	 * @return bool
+	 */
+	public function verify_api_key( \WP_REST_Request $request ): bool {
+		$key = $request->get_param( 'key' ) ?? '';
+
+		if ( ! $key || strlen( $key ) < 24 ) {
+			return false;
+		}
+
+		$target_key = \get_option( 'core_framework_api_key', '' );
+
+		if ( ! $target_key ) {
+			return false;
+		}
+
+		$target_checksum = substr( $target_key, 0, 24 );
+		$key_checksum    = substr( $key, 0, 24 );
+
+		if ( $key_checksum !== $target_checksum ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Register the routes
 	 *
 	 * @return void
@@ -248,6 +296,7 @@ class AllPoints extends Base {
 			)
 		);
 
+		// THIS
 		register_rest_route(
 			CORE_FRAMEWORK_NAME . '/v2',
 			'/update-colors',
@@ -258,6 +307,7 @@ class AllPoints extends Base {
 			)
 		);
 
+		// THIS
 		register_rest_route(
 			CORE_FRAMEWORK_NAME . '/v2',
 			'/update-classes',
@@ -268,6 +318,7 @@ class AllPoints extends Base {
 			)
 		);
 
+		// THIS
 		register_rest_route(
 			CORE_FRAMEWORK_NAME . '/v2',
 			'/update-grouped-classes',
@@ -318,6 +369,7 @@ class AllPoints extends Base {
 			)
 		);
 
+		// THIS
 		register_rest_route(
 			CORE_FRAMEWORK_NAME . '/v2',
 			'/update-prefixed-css-file',
@@ -328,6 +380,7 @@ class AllPoints extends Base {
 			)
 		);
 
+		// THIS
 		register_rest_route(
 			CORE_FRAMEWORK_NAME . '/v2',
 			'/save-oxygen-css-helper',
@@ -390,11 +443,81 @@ class AllPoints extends Base {
 
 		register_rest_route(
 			CORE_FRAMEWORK_NAME . '/v2',
-			'/get-preset',
+			'/preset',
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_preset' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( $this, 'verify_api_key' ),
+			)
+		);
+
+		register_rest_route(
+			CORE_FRAMEWORK_NAME . '/v2',
+			'/preset',
+			array(
+				'methods'             => \WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'update_preset' ),
+				'permission_callback' => array( $this, 'verify_api_key' ),
+			)
+		);
+
+		register_rest_route(
+			CORE_FRAMEWORK_NAME . '/v2',
+			'/preset-css',
+			array(
+				'methods'             => \WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'update_preset_css' ),
+				'permission_callback' => array( $this, 'verify_api_key' ),
+			)
+		);
+
+		register_rest_route(
+			CORE_FRAMEWORK_NAME . '/v2',
+			'/figma/update-colors',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'figma_update_colors' ),
+				'permission_callback' => array( $this, 'verify_api_key' ),
+			)
+		);
+
+		register_rest_route(
+			CORE_FRAMEWORK_NAME . '/v2',
+			'/figma/update-classes',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'figma_update_classes' ),
+				'permission_callback' => array( $this, 'verify_api_key' ),
+			)
+		);
+
+		register_rest_route(
+			CORE_FRAMEWORK_NAME . '/v2',
+			'/figma/update-grouped-classes',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'figma_update_grouped_classes' ),
+				'permission_callback' => array( $this, 'verify_api_key' ),
+			)
+		);
+
+		register_rest_route(
+			CORE_FRAMEWORK_NAME . '/v2',
+			'/figma/update-prefixed-css-file',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'figma_update_prefixed_css_file' ),
+				'permission_callback' => array( $this, 'verify_api_key' ),
+			)
+		);
+
+		register_rest_route(
+			CORE_FRAMEWORK_NAME . '/v2',
+			'/figma/save-oxygen-css-helper',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'figma_save_oxygen_css_helper' ),
+				'permission_callback' => array( $this, 'verify_api_key' ),
 			)
 		);
 	}
@@ -792,6 +915,7 @@ class AllPoints extends Base {
 		$license_keys_array = array(
 			'oxygen' => '',
 			'bricks' => '',
+			'figma'  => '',
 		);
 
 		foreach ( $license_keys_array as $key => $value ) {
@@ -1075,36 +1199,6 @@ class AllPoints extends Base {
 	 */
 	public function get_preset( \WP_REST_Request $request ) {
 		try {
-			$key = $request->get_param( 'key' ) ?? '';
-
-			if ( ! $key || strlen( $key ) < 24 ) {
-				http_response_code( 400 );
-				exit();
-			}
-
-			$target_key = \get_option( 'core_framework_api_key', '' );
-
-			if ( ! $target_key ) {
-				return new \WP_REST_Response(
-					array(
-						'success' => false,
-					)
-				);
-			}
-
-			$target_checksum = substr( $target_key, 0, 24 );
-			$key_checksum    = substr( $key, 0, 24 );
-
-			if ( $key_checksum !== $target_checksum ) {
-				return new \WP_REST_Response(
-					array(
-						'success' => false,
-						'message' => 'Invalid API key',
-						'api_key' => $key,
-					)
-				);
-			}
-
 			$helper = new Helper();
 			$preset = $helper->loadPreset();
 
@@ -1118,5 +1212,416 @@ class AllPoints extends Base {
 			http_response_code( 400 );
 			exit();
 		}
+	}
+
+	/**
+	 * Update preset using API key
+	 *
+	 * @since 1.6.0
+	 */
+	public function update_preset( \WP_REST_Request $request ) {
+		$body   = $request->get_body();
+		$json   = json_decode( $body, true );
+		$preset = isset( $json['preset'] ) ? $json['preset'] : null;
+		$data   = json_encode( $preset );
+
+		if ( ! $data || $data == null || $data == '' ) {
+			http_response_code( 200 );
+			exit();
+		}
+
+		$helper    = new Helper();
+		$preset_id = $helper->getPresetId();
+
+		$time = \current_time( 'mysql' );
+
+		if ( ! $preset_id ) {
+			$preset_id = Functions()->get_random_id();
+			$helper->setPresetId( $preset_id );
+		}
+
+		global $wpdb;
+		$table_name   = $wpdb->prefix . 'core_framework_presets';
+		$target_table = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
+
+		if ( $target_table != $table_name ) {
+			CoreFramework()->createTable();
+		}
+
+		$exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table_name WHERE id = %s", $preset_id ) );
+
+		if ( $exists ) {
+			$wpdb->update(
+				$table_name,
+				array(
+					'id'   => $preset_id,
+					'time' => $time,
+					'data' => $data,
+				),
+				array( 'id' => $preset_id )
+			);
+
+			if ( \is_wp_error( $wpdb->insert_id ) ) {
+				http_response_code( 400 );
+				exit();
+			}
+
+			CoreFramework()->purge_cache();
+
+			return new \WP_REST_Response(
+				array(
+					'success' => true,
+					'action'  => 'updated',
+				)
+			);
+		}
+
+		$wpdb->insert(
+			$table_name,
+			array(
+				'id'   => $preset_id,
+				'time' => $time,
+				'data' => $data,
+			)
+		);
+
+		if ( \is_wp_error( $wpdb->insert_id ) ) {
+			http_response_code( 400 );
+			exit();
+		}
+
+		CoreFramework()->purge_cache();
+
+		return new \WP_REST_Response(
+			array(
+				'success' => true,
+				'action'  => 'created',
+			)
+		);
+	}
+
+	/**
+	 * Update css
+	 *
+	 * @since 1.6.0
+	 */
+	public function update_preset_css( \WP_REST_Request $request ) {
+		$body = $request->get_body();
+		$data = json_decode( $body, true );
+		$css  = isset( $data['css'] ) ? $data['css'] : null;
+
+		if ( ! $css || $css == null || $css == '' ) {
+			http_response_code( 400 );
+			exit();
+		}
+
+		$plugins_root = WP_CONTENT_DIR . '/plugins';
+
+		if ( is_multisite() ) {
+			$bytes_saved = \file_put_contents( $plugins_root . '/core-framework/assets/public/css/core_framework_' . get_current_blog_id() . '.css', $css );
+		} else {
+			$bytes_saved = \file_put_contents( $plugins_root . '/core-framework/assets/public/css/core_framework.css', $css );
+		}
+
+		\update_option( 'core_framework_selected_preset_backup', $css, false );
+		CoreFramework()->purge_cache();
+
+		return new \WP_REST_Response(
+			array(
+				'success' => true,
+			)
+		);
+	}
+
+	/**
+	 * @since 1.8.0
+	 */
+	public function figma_update_colors( \WP_REST_Request $request ) {
+		$body   = $request->get_body();
+		$data   = json_decode( $body, true );
+		$colors = isset( $data['colors'] ) ? $data['colors'] : null;
+
+		if ( $colors === null ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'Colors are null',
+				),
+				400
+			);
+		}
+
+		update_option( 'core_framework_colors', $colors, false );
+
+		$builder_array = array(
+			'oxygen' => array(
+				'is_active'     => CoreFrameworkOxygen()->is_oxygen(),
+				'class'         => CoreFrameworkOxygen(),
+				'key'           => 'oxygen',
+				'addon_license' => $this->is_addon_enabled( 'oxygen' ),
+			),
+			'bricks' => array(
+				'is_active'     => CoreFrameworkBricks()->is_bricks(),
+				'class'         => CoreFrameworkBricks(),
+				'key'           => 'bricks',
+				'addon_license' => $this->is_addon_enabled( 'bricks' ),
+			),
+		);
+
+		$active_builders = array();
+		$core_setting    = \get_option( 'core_framework_main' );
+
+		foreach ( $builder_array as $builder ) {
+			if ( ! $builder['addon_license'] ) {
+				continue;
+			}
+
+			if ( ! $builder['is_active'] ) {
+				continue;
+			}
+
+			if ( ! $core_setting[ $builder['key'] ] ) {
+				continue;
+			}
+
+			$builder['class']->update_colors( $colors );
+			$active_builders[] = $builder['key'];
+
+			break;
+		}
+
+		return new \WP_REST_Response(
+			array(
+				'success'         => true,
+				'active_builders' => $active_builders,
+			)
+		);
+	}
+
+	/**
+	 * @since 1.8.0
+	 */
+	public function figma_update_classes( \WP_REST_Request $request ) {
+		$body    = $request->get_body();
+		$json    = json_decode( $body, true );
+		$classes = isset( $json['classes'] ) ? $json['classes'] : null;
+
+		if ( $classes === null ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'Classes or addon enable array is null',
+				),
+				400
+			);
+		}
+
+		$new_selectors_array = explode( ',', $classes ) ?? array();
+		$builder_array       = array(
+			'oxygen' => array(
+				'is_active'     => CoreFrameworkOxygen()->is_oxygen(),
+				'class'         => CoreFrameworkOxygen(),
+				'key'           => 'oxygen',
+				'addon_license' => $this->is_addon_enabled( 'oxygen' ),
+			),
+			'bricks' => array(
+				'is_active'     => CoreFrameworkBricks()->is_bricks(),
+				'class'         => CoreFrameworkBricks(),
+				'key'           => 'bricks',
+				'addon_license' => $this->is_addon_enabled( 'bricks' ),
+			),
+		);
+
+		$active_builders = array();
+		$core_option     = \get_option( 'core_framework_main' );
+
+		foreach ( $builder_array as $builder ) {
+			if ( ! $builder['is_active'] ) {
+				continue;
+			}
+
+			if ( ! $builder['addon_license'] ) {
+				continue;
+			}
+
+			if ( ! $core_option[ $builder['key'] ] ) {
+				continue;
+			}
+
+			if ( method_exists( $builder['class'], 'refresh_selectors' ) ) {
+				$builder['class']->refresh_selectors( $new_selectors_array );
+			}
+
+			if ( method_exists( $builder['class'], 'refresh_variables' ) ) {
+				$builder['class']->refresh_variables();
+			}
+
+			$active_builders[] = $builder['key'];
+
+			break;
+		}
+
+		return new \WP_REST_Response(
+			array(
+				'success'         => true,
+				'active_builders' => $active_builders,
+			)
+		);
+	}
+
+	/**
+	 * @since 1.8.0
+	 */
+	public function figma_update_grouped_classes( \WP_REST_Request $request ) {
+		try {
+			if ( ! $this->is_addon_enabled( 'gutenberg' ) ) {
+				return new \WP_REST_Response(
+					array(
+						'success' => false,
+						'message' => 'Gutenberg addon not active or licensed',
+					),
+					200
+				);
+			}
+
+			$body            = $request->get_body();
+			$data            = json_decode( $body, true );
+			$grouped_classes = isset( $data['groupedClassNames'] ) ? $data['groupedClassNames'] : null;
+
+			if ( $grouped_classes === null ) {
+				return new \WP_REST_Response(
+					array(
+						'success' => false,
+						'message' => 'Grouped classes are null',
+					),
+					400
+				);
+			}
+
+			$response = update_option( 'core_framework_grouped_classes', $grouped_classes, false );
+
+			if ( \is_wp_error( $response ) ) {
+				return new \WP_REST_Response(
+					array(
+						'success' => false,
+						'message' => 'Failed to update grouped classes',
+					),
+					400
+				);
+			}
+
+			return new \WP_REST_Response(
+				array(
+					'success' => true,
+					'message' => 'Grouped classes updated successfully',
+				)
+			);
+		} catch ( \Exception $e ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'An error occurred: ' . $e->getMessage(),
+				),
+				500
+			);
+		}
+	}
+
+	/**
+	 * @since 1.8.0
+	 */
+	public function figma_update_prefixed_css_file( \WP_REST_Request $request ) {
+		if ( ! $this->is_addon_enabled( 'gutenberg' ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'Gutenberg addon not active or licensed',
+				),
+				200
+			);
+		}
+
+		$body      = $request->get_body();
+		$data      = json_decode( $body, true );
+		$cssString = isset( $data['cssString'] ) ? $data['cssString'] : null;
+
+		if ( ! $cssString ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'CSS string is null',
+				),
+				400
+			);
+		}
+
+		$success = update_option( 'core_framework_editor_prefixed_css', $cssString, false );
+
+		if ( \is_wp_error( $success ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'Failed to update prefixed CSS file',
+				),
+				400
+			);
+		}
+
+		CoreFramework()->purge_cache();
+
+		return new \WP_REST_Response(
+			array(
+				'success' => true,
+				'message' => 'Prefixed CSS file updated successfully',
+			)
+		);
+	}
+
+	/**
+	 * @since 1.8.0
+	 */
+	public function figma_save_oxygen_css_helper( \WP_REST_Request $request ) {
+		if ( ! $this->is_addon_enabled( 'oxygen' ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'Oxygen addon not active or licensed',
+				),
+				200
+			);
+		}
+
+		$body      = $request->get_body();
+		$data      = json_decode( $body, true );
+		$cssString = isset( $data['cssString'] ) ? $data['cssString'] : null;
+
+		if ( ! $cssString ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'CSS string is null',
+				),
+				400
+			);
+		}
+
+		$success = update_option( 'core_framework_oxygen_css_helper', $cssString, false );
+
+		if ( \is_wp_error( $success ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'Failed to update Oxygen CSS helper',
+				),
+				400
+			);
+		}
+
+		return new \WP_REST_Response(
+			array(
+				'success' => true,
+				'message' => 'Oxygen CSS helper updated successfully',
+			)
+		);
 	}
 }

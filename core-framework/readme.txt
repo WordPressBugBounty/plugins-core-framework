@@ -4,7 +4,7 @@ Tags: css, framework, stylesheet, bricks, oxygen
 Requires at least: 6.0
 Requires PHP: 7.4
 Tested up to: 6.6.1
-Stable tag: 1.6.2
+Stable tag: 1.6.3
 License: GPLv2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 

@@ -10,7 +10,7 @@
  * Plugin Name:     Core Framework
  * Plugin URI:      https://coreframework.com
  * Description:     The CORE of your website
- * Version:         1.6.2
+ * Version:         1.6.3
  * Author:          Core Framework
  * Author URI:      https://coreframework.com
  * Text Domain:     core-framework
@@ -40,7 +40,7 @@ define( 'CORE_FRAMEWORK_DIR_URL', plugin_dir_url( __FILE__ ) );
 define( 'CORE_FRAMEWORK_NAME', dirname( CORE_FRAMEWORK_MAIN_FILE ) );
 
 define( 'CORE_FRAMEWORK_DB_VER', '1.3' );
-define( 'CORE_FRAMEWORK_VERSION', '1.6.2' );
+define( 'CORE_FRAMEWORK_VERSION', '1.6.3' );
 
 define( 'CORE_FRAMEWORK_EDD_STORE_URL', 'https://edd.coreframework.com' );
 define( 'CORE_FRAMEWORK_FREE_ITEM_ID', 40 );

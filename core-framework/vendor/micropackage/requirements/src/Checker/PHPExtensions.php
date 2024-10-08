@@ -45,13 +45,13 @@ class PHPExtensions extends Abstracts\Checker {
 		}
 
 		if ( ! empty( $missing_extensions ) ) {
-			$this->add_error( sprintf(
+			$this->add_error(
+				sprintf(
 				// Translators: PHP extensions.
-				_n( 'Missing PHP extension: %s', 'Missing PHP extensions: %s', count( $missing_extensions ), Requirements::$textdomain ),
-				implode( ', ', $missing_extensions )
-			) );
+					_n( 'Missing PHP extension: %s', 'Missing PHP extensions: %s', count( $missing_extensions ), Requirements::$textdomain ),
+					implode( ', ', $missing_extensions )
+				)
+			);
 		}
-
 	}
-
 }

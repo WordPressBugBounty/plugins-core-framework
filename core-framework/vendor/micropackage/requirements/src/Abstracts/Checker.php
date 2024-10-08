@@ -26,7 +26,7 @@ abstract class Checker implements Interfaces\Checkable {
 	 *
 	 * @var array
 	 */
-	protected $errors = [];
+	protected $errors = array();
 
 	/**
 	 * Checks if the requirement is met
@@ -68,5 +68,4 @@ abstract class Checker implements Interfaces\Checkable {
 	public function get_errors() {
 		return $this->errors;
 	}
-
 }
