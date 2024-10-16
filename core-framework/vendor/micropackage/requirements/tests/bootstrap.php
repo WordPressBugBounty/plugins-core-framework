@@ -23,7 +23,7 @@ require_once $_tests_dir . '/includes/functions.php';
  * Manually load the package as mu-plugin.
  */
 function _manually_load_package() {
-	require dirname( __DIR__ ) . '/vendor/autoload.php';
+	require dirname( dirname( __FILE__ ) ) . '/vendor/autoload.php';
 }
 tests_add_filter( 'muplugins_loaded', '_manually_load_package' );
 

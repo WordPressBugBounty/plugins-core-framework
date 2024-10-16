@@ -406,6 +406,10 @@ class Helper {
 
 		if ( isset( $preset['modulesData'] ) && isset( $preset['modulesData']['COLOR_SYSTEM'] ) && isset( $preset['modulesData']['COLOR_SYSTEM']['groups'] ) ) {
 			foreach ( $preset['modulesData']['COLOR_SYSTEM']['groups'] as $group ) {
+				if ( isset( $group['isDisabled'] ) && $group['isDisabled'] ) {
+					continue;
+				}
+
 				if ( isset( $group['colors'] ) && is_array( $group['colors'] ) ) {
 					foreach ( $group['colors'] as $color ) {
 						$key = 'colorStyles';
@@ -707,6 +711,10 @@ class Helper {
 
 		if ( isset( $preset['modulesData'] ) && isset( $preset['modulesData']['COLOR_SYSTEM'] ) && isset( $preset['modulesData']['COLOR_SYSTEM']['groups'] ) ) {
 			foreach ( $preset['modulesData']['COLOR_SYSTEM']['groups'] as $group ) {
+				if ( isset( $group['isDisabled'] ) && $group['isDisabled'] ) {
+					continue;
+				}
+
 				if ( isset( $group['colors'] ) && is_array( $group['colors'] ) ) {
 					foreach ( $group['colors'] as $color ) {
 						$key = 'colorStyles';
@@ -994,6 +1002,10 @@ class Helper {
 
 		if ( isset( $preset['modulesData'] ) && isset( $preset['modulesData']['COLOR_SYSTEM'] ) && isset( $preset['modulesData']['COLOR_SYSTEM']['groups'] ) ) {
 			foreach ( $preset['modulesData']['COLOR_SYSTEM']['groups'] as $group ) {
+				if ( isset( $group['isDisabled'] ) && $group['isDisabled'] ) {
+					continue;
+				}
+
 				if ( isset( $group['colors'] ) && is_array( $group['colors'] ) ) {
 					foreach ( $group['colors'] as $color ) {
 						$name                               = $color['name'];
@@ -1244,6 +1256,10 @@ class Helper {
 		if ( $options['exclude_color_system_variables'] === false ) {
 			if ( isset( $preset['modulesData'] ) && isset( $preset['modulesData']['COLOR_SYSTEM'] ) && isset( $preset['modulesData']['COLOR_SYSTEM']['groups'] ) ) {
 				foreach ( $preset['modulesData']['COLOR_SYSTEM']['groups'] as $group ) {
+					if ( isset( $group['isDisabled'] ) && $group['isDisabled'] ) {
+						continue;
+					}
+
 					if ( isset( $group['colors'] ) && is_array( $group['colors'] ) ) {
 						$group_name = isset( $group['name'] ) ? $group['name'] : 'No name';
 						foreach ( $group['colors'] as $color ) {

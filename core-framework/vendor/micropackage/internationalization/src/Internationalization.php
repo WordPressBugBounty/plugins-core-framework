@@ -53,4 +53,5 @@ class Internationalization {
 		$mo_file = sprintf( '%s%s-%s.mo', $this->lang_dir, $this->textdomain, determine_locale() );
 		return load_textdomain( $this->textdomain, $mo_file );
 	}
+
 }

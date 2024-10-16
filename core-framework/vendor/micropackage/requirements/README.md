@@ -28,7 +28,7 @@ But it's open for any other custom check.
 
 ## 💾 Installation
 
-```bash
+``` bash
 composer require micropackage/requirements
 ```
 

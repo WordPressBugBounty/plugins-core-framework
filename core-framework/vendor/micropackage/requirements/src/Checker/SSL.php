@@ -43,5 +43,7 @@ class SSL extends Abstracts\Checker {
 		if ( ! $enabled && is_ssl() ) {
 			$this->add_error( __( 'SSL is superfluous', Requirements::$textdomain ) );
 		}
+
 	}
+
 }

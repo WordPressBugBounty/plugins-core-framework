@@ -48,5 +48,7 @@ class DocHooks extends Abstracts\Checker {
 		if ( $has_comment && ! $enabled ) {
 			$this->add_error( __( 'Support for DocHooks is superfluous', Requirements::$textdomain ) );
 		}
+
 	}
+
 }

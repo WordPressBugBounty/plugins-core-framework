@@ -28,4 +28,5 @@ interface Checkable {
 	 * @return void
 	 */
 	public function check( $value );
+
 }

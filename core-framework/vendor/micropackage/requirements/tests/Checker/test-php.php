@@ -36,7 +36,7 @@ class TestPHP extends \WP_UnitTestCase {
 	 * @expectedException Exception
 	 */
 	public function test_check_should_throw_exception_if_passed_not_numeric_or_string_requirement() {
-		$this->checker->check( array( '5.3' ) );
+		$this->checker->check( [ '5.3' ] );
 	}
 
 	/**
@@ -51,6 +51,7 @@ class TestPHP extends \WP_UnitTestCase {
 		$this->checker->check( '5.3' );
 		$this->checker->check( 5.3 );
 		$this->checker->check( 5 );
+
 	}
 
 	public function test_check_should_pass_when_using_the_same_version() {
@@ -70,4 +71,5 @@ class TestPHP extends \WP_UnitTestCase {
 
 		$this->assertNotEmpty( $this->checker->get_errors() );
 	}
+
 }

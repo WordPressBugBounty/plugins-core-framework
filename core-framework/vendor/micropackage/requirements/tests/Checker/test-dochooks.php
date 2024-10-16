@@ -21,11 +21,11 @@ class TestDocHooks extends \WP_UnitTestCase {
 	}
 
 	public function bad_params() {
-		return array(
-			array( '5.3' ),
-			array( 1 ),
-			array( array( true ) ),
-		);
+		return [
+			[ '5.3' ],
+			[ 1 ],
+			[ [ true ] ],
+		];
 	}
 
 	public function test_get_name_should_return_valid_name() {
@@ -39,4 +39,5 @@ class TestDocHooks extends \WP_UnitTestCase {
 	public function test_check_should_throw_exception_if_passed_not_bool_requirement( $param ) {
 		$this->checker->check( $param );
 	}
+
 }

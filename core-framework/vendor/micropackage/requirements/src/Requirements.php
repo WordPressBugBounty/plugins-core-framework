@@ -35,21 +35,21 @@ class Requirements {
 	 *
 	 * @var array
 	 */
-	protected $requirements = array();
+	protected $requirements = [];
 
 	/**
 	 * Checkers array
 	 *
 	 * @var array
 	 */
-	protected $checkers = array();
+	protected $checkers = [];
 
 	/**
 	 * Errors array
 	 *
 	 * @var array
 	 */
-	protected $errors = array();
+	protected $errors = [];
 
 	/**
 	 * If check has been performed
@@ -67,11 +67,11 @@ class Requirements {
 	 * @param bool   $autoload_checkers If default checkers should be autoloaded.
 	 *                                  Default: true.
 	 */
-	public function __construct( $plugin_name, $requirements = array(), $autoload_checkers = true ) {
+	public function __construct( $plugin_name, $requirements = [], $autoload_checkers = true ) {
 		$this->plugin_name = $plugin_name;
 
 		// Add requirements.
-		array_map( array( $this, 'add' ), array_keys( $requirements ), $requirements );
+		array_map( [ $this, 'add' ], array_keys( $requirements ), $requirements );
 
 		// Register default checkers.
 		if ( $autoload_checkers ) {
@@ -91,8 +91,8 @@ class Requirements {
 	 */
 	public function load_default_checkers() {
 		array_map(
-			array( $this, 'register_checker' ),
-			array(
+			[ $this, 'register_checker' ],
+			[
 				Checker\DocHooks::class,
 				Checker\PHP::class,
 				Checker\PHPExtensions::class,
@@ -100,7 +100,7 @@ class Requirements {
 				Checker\SSL::class,
 				Checker\Theme::class,
 				Checker\WP::class,
-			)
+			]
 		);
 	}
 
@@ -198,11 +198,11 @@ class Requirements {
 	 */
 	public function check() {
 		// Reset state.
-		$this->errors = array();
+		$this->errors = [];
 
 		foreach ( $this->get() as $checker_name => $requirement ) {
 			if ( $this->has_checker( $checker_name ) ) {
-				call_user_func( array( $this->get_checker( $checker_name ), 'check' ), $requirement );
+				call_user_func( [ $this->get_checker( $checker_name ), 'check' ], $requirement );
 				$this->errors = array_merge( $this->errors, $this->get_checker( $checker_name )->get_errors() );
 			}
 		}
@@ -261,12 +261,9 @@ class Requirements {
 			return;
 		}
 
-		add_action(
-			'admin_notices',
-			function () use ( $message ) {
-				include __DIR__ . '/notice.php';
-			}
-		);
+		add_action( 'admin_notices', function() use ( $message ) {
+			include __DIR__ . '/notice.php';
+		} );
 	}
 
 	/**
@@ -291,4 +288,5 @@ class Requirements {
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		wp_die( ob_get_clean(), wp_strip_all_tags( $message ) );
 	}
+
 }
