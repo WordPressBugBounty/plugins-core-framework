@@ -56,8 +56,19 @@ class Enqueue extends Base {
 
 		$option = get_option( 'core_framework_main', array() );
 
+		$helper = new Helper();
+		$preset = $helper->loadPreset();
+
 		if ( isset( $option['has_theme'] ) && $option['has_theme'] === true ) {
 			add_action( 'wp_enqueue_scripts', array( $this, 'add_theme_helper' ), 999 );
+		}
+
+		$presetPreferences         = isset( $preset['preferences'] ) ? $preset['preferences'] : null;
+		$hasDisableFocusableParent = isset( $presetPreferences['disable_focusable_parent'] ) && $presetPreferences['disable_focusable_parent'] === true;
+		$hasClickableParent        = isset( $presetPreferences['is_clickable_parent'] ) && $presetPreferences['is_clickable_parent'] === true;
+
+		if ( $hasDisableFocusableParent && $hasClickableParent ) {
+			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_styles_clickable_parent' ), 999 );
 		}
 
 		if ( CoreFrameworkOxygen()->is_oxygen() ) {
@@ -275,5 +286,50 @@ class Enqueue extends Base {
 		\wp_register_script( $script_name, false, array(), $this->plugin->version(), false );
 		\wp_enqueue_script( $script_name );
 		\wp_add_inline_script( $script_name, $script, 'after' );
+	}
+
+	/**
+	 * Enqueue styles clickable parent
+	 *
+	 * @since 1.2.0
+	 */
+	public function enqueue_styles_clickable_parent(): void {
+		$helper = new Helper();
+		$preset = $helper->loadPreset();
+
+		$class_name = isset( $preset['clickableParentClass'] ) ? $preset['clickableParentClass'] : '';
+
+		if ( empty( $class_name ) ) {
+			return;
+		}
+
+		$js = '
+			document.addEventListener("DOMContentLoaded", () => {
+    		document.querySelectorAll("' . $class_name . '").forEach(el => {
+			 		let wasFocusedByMouse = false;
+
+					el.addEventListener("mousedown", () => {
+						 wasFocusedByMouse = true;
+					});
+
+					el.addEventListener("focus", () => {
+						 if (wasFocusedByMouse) {
+								 el.style.setProperty("--after-display", "none");
+						 } else {
+								 el.style.setProperty("--after-display", "block");
+						 }
+					}, true);
+
+					el.addEventListener("blur", () => {
+						 wasFocusedByMouse = false;
+						 el.style.removeProperty("--after-display");
+					}, true);
+				});
+    	})
+		';
+
+		\wp_register_script( 'core-framework-clickable-parent', false, array(), $this->plugin->version(), false );
+		\wp_enqueue_script( 'core-framework-clickable-parent' );
+		\wp_add_inline_script( 'core-framework-clickable-parent', $js, 'after' );
 	}
 }

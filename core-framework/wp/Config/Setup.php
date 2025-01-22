@@ -15,7 +15,6 @@ declare(strict_types=1);
 namespace CoreFramework\Config;
 
 use CoreFramework\Common\Traits\Singleton;
-use CoreFramework\App\Updater\Updater;
 use CoreFramework\Helper;
 
 /**
@@ -25,6 +24,7 @@ use CoreFramework\Helper;
  * @since 0.0.0
  */
 final class Setup {
+
 
 	/**
 	 * Singleton trait
@@ -130,11 +130,10 @@ final class Setup {
 					file_put_contents( $helper->getStylesheetPath(), get_option( 'core_framework_selected_preset_backup', '' ) );
 				}
 
-				flush_rewrite_rules();
 				\restore_current_blog();
 			}
 		} elseif ( get_option( 'core_framework_selected_preset_backup', '' ) !== '' ) {
-				file_put_contents( plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . '/assets/public/css/core_framework.css', get_option( 'core_framework_selected_preset_backup', '' ) );
+			file_put_contents( plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . '/assets/public/css/core_framework.css', get_option( 'core_framework_selected_preset_backup', '' ) );
 		}
 
 		set_transient( 'core_framework_updated', CORE_FRAMEWORK_DB_VER, 0 );
@@ -143,9 +142,6 @@ final class Setup {
 
 	public static function on_new_multi_site_blog( object $new_site, $args = array() ): void {
 		\switch_to_blog( $new_site->blog_id );
-
-		$updater = new Updater();
-		$updater->activate();
 
 		CoreFramework()->createSettings();
 		CoreFramework()->createTable();

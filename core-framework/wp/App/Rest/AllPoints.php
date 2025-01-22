@@ -83,7 +83,7 @@ class AllPoints extends Base {
 			'gutenberg'                            => array(
 				'type' => 'boolean',
 			),
-			'figma'                            		 => array(
+			'figma'                                => array(
 				'type' => 'boolean',
 			),
 			'selected_id'                          => array(

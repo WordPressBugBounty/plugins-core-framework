@@ -1,23 +1,23 @@
 {
-  "../../../node_modules/.pnpm/canvg@3.0.10/node_modules/canvg/lib/index.es.js": {
-    "file": "index.es-367c885b.js",
+  "../node_modules/canvg/lib/index.es.js": {
+    "file": "index.es-4949af1e.js",
     "imports": [
       "main.tsx"
     ],
     "isDynamicEntry": true,
-    "src": "../../../node_modules/.pnpm/canvg@3.0.10/node_modules/canvg/lib/index.es.js"
+    "src": "../node_modules/canvg/lib/index.es.js"
   },
-  "../../../node_modules/.pnpm/dompurify@2.4.7/node_modules/dompurify/dist/purify.es.js": {
-    "file": "purify.es-cf254a40.js",
+  "../node_modules/dompurify/dist/purify.es.js": {
+    "file": "purify.es-2de9db7f.js",
     "isDynamicEntry": true,
-    "src": "../../../node_modules/.pnpm/dompurify@2.4.7/node_modules/dompurify/dist/purify.es.js"
+    "src": "../node_modules/dompurify/dist/purify.es.js"
   },
   "assets/documentation_card.png": {
     "file": "documentation_card-eda4364f.png",
     "src": "assets/documentation_card.png"
   },
   "main.css": {
-    "file": "main-0434d411.css",
+    "file": "main-9b65333e.css",
     "src": "main.css"
   },
   "main.tsx": {
@@ -25,13 +25,13 @@
       "documentation_card-eda4364f.png"
     ],
     "css": [
-      "main-0434d411.css"
+      "main-9b65333e.css"
     ],
     "dynamicImports": [
-      "../../../node_modules/.pnpm/dompurify@2.4.7/node_modules/dompurify/dist/purify.es.js",
-      "../../../node_modules/.pnpm/canvg@3.0.10/node_modules/canvg/lib/index.es.js"
+      "../node_modules/dompurify/dist/purify.es.js",
+      "../node_modules/canvg/lib/index.es.js"
     ],
-    "file": "main-bbbda89e.js",
+    "file": "main-63b9a8f6.js",
     "isEntry": true,
     "src": "main.tsx"
   }

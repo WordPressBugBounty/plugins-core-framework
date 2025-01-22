@@ -218,7 +218,7 @@ class Functions extends Base {
 			}
 
 			$name  = $core_colors[ $i ]['name'];
-			$color = $core_colors[ $i ]['raw'];
+			$color = $core_colors[ $i ]['value'] or $core_colors[ $i ]['raw'];
 
 			$previous_palette[] = array(
 				'name'  => $name,
