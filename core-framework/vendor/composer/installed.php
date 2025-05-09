@@ -1,8 +1,8 @@
 <?php return array(
     'root' => array(
         'name' => 'core-framework/core-framework',
-        'pretty_version' => '1.7.1',
-        'version' => '1.7.1.0',
+        'pretty_version' => '1.8.0',
+        'version' => '1.8.0.0',
         'reference' => null,
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
@@ -20,8 +20,8 @@
             'dev_requirement' => false,
         ),
         'core-framework/core-framework' => array(
-            'pretty_version' => '1.7.1',
-            'version' => '1.7.1.0',
+            'pretty_version' => '1.8.0',
+            'version' => '1.8.0.0',
             'reference' => null,
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',

@@ -90,11 +90,28 @@ class Functions extends Base {
 
 				$css_string .= '--' . 'wp--preset--color' . '--' . $slug . ': ' . $color . ';';
 			}
+
+			$css_string .= '}';
 		}
+
+		//generate css for text color classes
+		$styles = '<style>';
+
+		for ( $i = 0; $i < count( $core_colors ); $i++ ) {
+			$slug = 'has-cf-' . sanitize_title($core_colors[ $i ]['name']) . '-color';
+			$color_value = $core_colors[ $i ]['value'];
+			$styles .= ".$slug { color: {$color_value} !important; }";
+		}
+
+		$styles .= '</style>';
 
 		wp_register_style( 'core-framework-inline', false );
 		wp_enqueue_style( 'core-framework-inline' );
 		wp_add_inline_style( 'core-framework-inline', $css_string );
+
+		wp_register_style( 'core-framework-colors-classes-inline', false );
+    wp_enqueue_style( 'core-framework-colors-classes-inline' );
+		wp_add_inline_style( 'core-framework-colors-classes-inline', $styles );
 	}
 
 	public function is_gutenberg() {

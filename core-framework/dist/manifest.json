@@ -1,6 +1,6 @@
 {
   "../node_modules/canvg/lib/index.es.js": {
-    "file": "index.es-6feae763.js",
+    "file": "index.es-633ae7f9.js",
     "imports": [
       "main.tsx"
     ],
@@ -17,7 +17,7 @@
     "src": "assets/documentation_card.png"
   },
   "main.css": {
-    "file": "main-9b65333e.css",
+    "file": "main-64500a1e.css",
     "src": "main.css"
   },
   "main.tsx": {
@@ -25,13 +25,13 @@
       "documentation_card-eda4364f.png"
     ],
     "css": [
-      "main-9b65333e.css"
+      "main-64500a1e.css"
     ],
     "dynamicImports": [
       "../node_modules/dompurify/dist/purify.es.js",
       "../node_modules/canvg/lib/index.es.js"
     ],
-    "file": "main-e8776148.js",
+    "file": "main-a5cff9d8.js",
     "isEntry": true,
     "src": "main.tsx"
   }

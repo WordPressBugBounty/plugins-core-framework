@@ -221,8 +221,11 @@ class Functions extends Base {
 			'bricks_apply_class_on_hover'          => isset( $core_framework_options['bricks_apply_class_on_hover'] ) ? $core_framework_options['bricks_apply_class_on_hover'] : true,
 			'bricks_apply_variable_on_hover'       => isset( $core_framework_options['bricks_apply_variable_on_hover'] ) ? $core_framework_options['bricks_apply_variable_on_hover'] : true,
 			'bricks_enable_variable_context_menu'  => isset( $core_framework_options['bricks_enable_variable_context_menu'] ) ? $core_framework_options['bricks_enable_variable_context_menu'] : true,
+			'bricks_bem_generator'                 => isset( $core_framework_options['bricks_bem_generator'] ) ? $core_framework_options['bricks_bem_generator'] : true,
 			'gutenberg_enable_dark_mode_preview'   => isset( $core_framework_options['gutenberg_enable_dark_mode_preview'] ) ? $core_framework_options['gutenberg_enable_dark_mode_preview'] : true,
 			'gutenberg_place_controls_at_the_top'  => isset( $core_framework_options['gutenberg_place_controls_at_the_top'] ) ? $core_framework_options['gutenberg_place_controls_at_the_top'] : true,
+      'gutenberg_close_widget_default'  		 => isset( $core_framework_options['gutenberg_close_widget_default'] ) ? $core_framework_options['gutenberg_close_widget_default'] : false,
+      'plugin_name'  		 										 => isset( $core_framework_options['plugin_name'] ) ? $core_framework_options['plugin_name'] : $this->plugin->name(),
 			'theme_mode'                           => isset( $core_framework_options['theme_mode'] ) ? $core_framework_options['theme_mode'] : 'light',
 		);
 

@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace CoreFramework\App\Bricks;
 
 use CoreFramework\Common\Abstracts\Base;
+use CoreFramework\Helper;
 
 /**
  * Class Bricks
@@ -46,6 +47,48 @@ class Bricks extends Base {
 		\add_action( 'init', array( $this, 'enqueue_builder_helpers' ), 9 );
 		\add_action( 'init', array( $this, 'register_frontend_theme_helper' ), 10 );
 		\add_action( 'init', array( $this, 'register_bricks_elements' ), 11 );
+		\add_action( 'wp_enqueue_scripts', array( $this, 'add_corresponding_css' ), 9999, 12 );
+	}
+
+	public function add_corresponding_css() {
+		$helper = new Helper();
+		$preset = $helper->loadPreset();
+		$preset_fonts = isset( $preset['modulesData'] ) && isset( $preset['modulesData']['FONTS'] )
+			? $preset['modulesData']['FONTS']['fonts']
+			: array();
+		$css = '';
+
+		function merge_root_selectors($cssString) {
+        $rootRegex = '/:root\s*\{\s*([^}]*)\s*\}/m';
+        $mergedVariables = '';
+
+        if (preg_match_all($rootRegex, $cssString, $matches)) {
+            foreach ($matches[1] as $match) {
+                $props = explode(';', $match);
+
+                foreach ($props as $prop) {
+                    $prop = trim($prop);
+                    if (!empty($prop)) {
+                        $mergedVariables .= "  " . $prop . ";\n";
+                    }
+                }
+            }
+        }
+
+        $cleanedCss = preg_replace($rootRegex, '', $cssString);
+        $cleanedCss = trim($cleanedCss);
+        $mergedRoot = ":root {\n{$mergedVariables}}";
+
+        return $mergedRoot . "\n\n" . $cleanedCss;
+    }
+
+		foreach ( $preset_fonts as $font ) {
+				$css .= $font['cssPreview'];
+		}
+
+		wp_register_style( 'core-framework-inline', false );
+		wp_enqueue_style( 'core-framework-inline' );
+		wp_add_inline_style( 'core-framework-inline', merge_root_selectors($css) );
 	}
 
 	/**
@@ -88,6 +131,15 @@ class Bricks extends Base {
 			true,
 		);
 		\wp_enqueue_script( $name );
+
+		\wp_register_script(
+			'bricks_bem_generator',
+			\plugins_url( '/assets/public/js/bricks_bem_generator.js', CORE_FRAMEWORK_ABSOLUTE ),
+			array(),
+			filemtime( CORE_FRAMEWORK_DIR_ROOT . '/assets/public/js/bricks_bem_generator.js' ),
+			false
+		);
+		\wp_enqueue_script( 'bricks_bem_generator' );
 
 		\wp_register_style(
 			$name,

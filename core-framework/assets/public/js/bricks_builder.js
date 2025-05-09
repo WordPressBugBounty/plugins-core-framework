@@ -21,6 +21,7 @@ var ThemeClasses;
         bricks_apply_class_on_hover: true,
         bricks_apply_variable_on_hover: true,
         bricks_enable_variable_context_menu: true,
+        bricks_bem_generator: true,
         oxygen_enable_variable_dropdown: true,
         oxygen_enable_dark_mode_preview: true,
         oxygen_enable_variable_ui_auto_hide: true,
@@ -70,9 +71,33 @@ var ThemeClasses;
         };
         observer.observe(target, Object.assign(Object.assign({}, DEFAULT_OPTIONS), options));
     };
+    const getUniqueVariables = (styles) => {
+        const filteredStyles = {};
+        for (const groupKey in styles) {
+            const group = styles[groupKey];
+            if (!group)
+                continue;
+            const seenVariables = new Set();
+            filteredStyles[groupKey] = Object.keys(group).reduce((acc, key) => {
+                const value = group[key];
+                if (key === "Contextual variables" && Array.isArray(value)) {
+                    acc[key] = value;
+                    value.forEach((v) => seenVariables.add(v));
+                }
+                else if (Array.isArray(value)) {
+                    acc[key] = value.filter((v) => !seenVariables.has(v) && seenVariables.add(v));
+                }
+                return acc;
+            }, {});
+        }
+        return filteredStyles;
+    };
     const getCoreFrameworkConnector = () => { var _a; return (_a = window === null || window === void 0 ? void 0 : window.core_framework_connector) !== null && _a !== void 0 ? _a : DEFAULT_CORE_FRAMEWORK_CONNECTOR; };
     const assertOption = (feature) => { var _a, _b; return (_b = (_a = getCoreFrameworkConnector()) === null || _a === void 0 ? void 0 : _a[feature]) !== null && _b !== void 0 ? _b : false; };
     const log = (message, ...args) => console.log(`[Core Framework] ${message}`, ...args);
+    const getChild = (children, data) => {
+        return children.find(child => { var _a; return (_a = child.textContent) === null || _a === void 0 ? void 0 : _a.trim().includes(data.family); });
+    };
     const addThemeToggleButton = () => {
         var _a, _b, _c, _d;
         if (!assertOption("bricks_enable_dark_mode_preview")) {
@@ -1475,7 +1500,7 @@ var ThemeClasses;
                     log(`No variables found. ${errorMessageCommon}`);
                     return false;
                 }
-                this.variables = json.variables;
+                this.variables = getUniqueVariables(json.variables);
                 if (!json.color_system_data) {
                     log(`No color system data found. ${errorMessageCommon}`);
                     return false;
@@ -1716,10 +1741,132 @@ var ThemeClasses;
             }
         }
     }
-    const main = () => {
+    const findNestedValueByKey = (obj, targetKey) => {
+        if (typeof obj !== "object" || obj === null) {
+            return null;
+        }
+        const record = obj;
+        if (Object.prototype.hasOwnProperty.call(record, targetKey)) {
+            return record[targetKey];
+        }
+        for (const key of Object.keys(record)) {
+            const value = record[key];
+            if (typeof value === "object" && value !== null) {
+                const found = findNestedValueByKey(value, targetKey);
+                if (found !== null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    };
+    const getFonts = async () => {
+        window.coreframework = {
+            nonce: window.wpApiSettings.nonce,
+            rest_url: window.wpApiSettings.root,
+            core_api_url: `${window.wpApiSettings.root}core-framework/v2/`,
+        };
+        try {
+            const response = await fetch(`${window.coreframework.core_api_url}get-core-fonts`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-WP-Nonce': window.coreframework.nonce,
+                }
+            });
+            const { fonts } = await response.json();
+            return fonts.filter((font) => font.enable);
+        }
+        catch (e) {
+            console.log(e);
+            return [];
+        }
+    };
+    const applyCoreOptionsView = (enabledFonts) => {
+        const innerPanel = document.querySelector("#bricks-panel-inner:not(div.bricks-control-popup *)");
+        if (!innerPanel) {
+            log("Inner panel not found, can't initialize preview of variables on hover");
+            return;
+        }
+        const observer = new MutationObserver(() => {
+            const fontsGroups = document.querySelectorAll('#bricks-panel-inner .options-wrapper .title');
+            const coreGroup = Array.from(fontsGroups).find((group) => group.textContent === "Core Framework");
+            const fontsList = coreGroup === null || coreGroup === void 0 ? void 0 : coreGroup.closest('ul');
+            const isAlreadyAdded = fontsList === null || fontsList === void 0 ? void 0 : fontsList.querySelector('.core-icon');
+            if (fontsList && !isAlreadyAdded) {
+                const children = Array.from(fontsList.children);
+                enabledFonts.forEach((font) => {
+                    const targetFontOption = getChild(children, font);
+                    if (targetFontOption) {
+                        Object.assign(targetFontOption.style, {
+                            "display": "flex",
+                            "justify-content": "space-between",
+                            "align-items": "center"
+                        });
+                        const coreIcon = document.createElement("span");
+                        coreIcon.style.setProperty("width", "13px");
+                        coreIcon.style.setProperty("height", "13px");
+                        coreIcon.classList.add("core-icon");
+                        coreIcon.innerHTML = `
+							<svg 
+								id="b" 
+								xmlns="http://www.w3.org/2000/svg" 
+								viewBox="0 0 31.82 24.84"
+								width="15"
+								height="15"
+							>
+								<defs>
+									<linearGradient id="e" x1="3.77" y1="7.44" x2="31.03" y2="24.04" gradientTransform="translate(0 26) scale(1 -1)" gradientUnits="userSpaceOnUse">
+										<stop offset="0" stop-color="#5c68f9"></stop>
+										<stop offset="1" stop-color="#8e97fe"></stop>
+									</linearGradient>
+									<linearGradient id="f" x1="8.16" y1=".31" x2="13.63" y2="17.26" gradientTransform="translate(0 26) scale(1 -1)" gradientUnits="userSpaceOnUse">
+										<stop offset="0" stop-color="#5c68f9" stop-opacity="0"></stop>
+										<stop offset=".08" stop-color="#5561f4" stop-opacity=".1"></stop>
+										<stop offset=".32" stop-color="#434ce6" stop-opacity=".42"></stop>
+										<stop offset=".55" stop-color="#343cdc" stop-opacity=".67"></stop>
+										<stop offset=".74" stop-color="#2930d4" stop-opacity=".85"></stop>
+										<stop offset=".9" stop-color="#2329cf" stop-opacity=".96"></stop>
+										<stop offset="1" stop-color="#2127ce"></stop>
+									</linearGradient>
+								</defs>
+								<g id="c">
+									<g id="d">
+										<rect x="18.78" y="10.68" width="13.03" height="7.07" style="fill:#fa5e5e;"></rect>
+										<path d="m12.42,0C5.56,0,0,5.56,0,12.42h0c0,6.86,5.56,12.42,12.42,12.42h6.37v-7.07h-6.37c-2.95,0-5.35-2.39-5.35-5.35h0c0-2.95,2.39-5.35,5.35-5.35h19.4V0H12.42Z" style="fill:#7d87fc;"></path>
+										path d="m7.07,12.42h0c0-1.23.43-2.35,1.13-3.25h-.02L.74,16.6c1.72,4.79,6.3,8.23,11.68,8.23h6.37v-7.07h-6.37c-2.95,0-5.35-2.39-5.35-5.35h0Z" style="fill:#424ae1;"></path>
+									</g>
+								</g>
+							</svg>
+						`;
+                        targetFontOption.appendChild(coreIcon);
+                    }
+                });
+            }
+        });
+        observer.observe(innerPanel, {
+            subtree: true,
+            childList: true,
+            attributes: false
+        });
+    };
+    const applyCoreFonts = async () => {
+        const enabledFonts = await getFonts();
+        const bricksData = window.bricksData;
+        const bricksFonts = findNestedValueByKey(bricksData, "fonts");
+        const fontsOptionsMap = enabledFonts.reduce((acc, font) => (Object.assign(Object.assign({}, acc), { [font.family]: font.title })), {});
+        const coreGroup = { "coreFontsGroupTitle": "Core Framework" };
+        if (enabledFonts.length && bricksFonts) {
+            bricksFonts.options = Object.assign(Object.assign(Object.assign({}, coreGroup), fontsOptionsMap), bricksFonts.options);
+            bricksFonts.core = enabledFonts.map((font) => (Object.assign(Object.assign({}, font), { files: [] })));
+            applyCoreOptionsView(enabledFonts);
+        }
+    };
+    const main = async () => {
         addThemeToggleButton();
         initApplyClassOnHover();
         initApplyVariableOnHover();
+        await applyCoreFonts();
         // new VariableAutoComplete();
         new VariableUi();
     };

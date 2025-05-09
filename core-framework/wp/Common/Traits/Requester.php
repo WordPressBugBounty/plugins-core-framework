@@ -109,7 +109,8 @@ trait Requester {
 	 * @since 0.0.0
 	 */
 	public function isRest(): bool {
-		return strpos( $_SERVER['REQUEST_URI'] ?? '', 'wp-json' ) !== false || defined( 'REST_REQUEST' );
+		$rest_url = apply_filters('rest_url_prefix', 'wp-json');
+		return strpos( $_SERVER['REQUEST_URI'] ?? '', $rest_url ) !== false || defined( 'REST_REQUEST' );
 	}
 
 	/**

@@ -98,6 +98,9 @@ class AllPoints extends Base {
 			'theme_mode'                           => array(
 				'type' => 'string',
 			),
+			'plugin_name'                           => array(
+				'type' => 'string',
+			),
 			'has_theme'                            => array(
 				'type' => 'boolean',
 			),
@@ -146,6 +149,9 @@ class AllPoints extends Base {
 			'bricks_apply_variable_on_hover'       => array(
 				'type' => 'boolean',
 			),
+			'bricks_bem_generator'       					 => array(
+				'type' => 'boolean',
+      ),
 			'bricks_enable_variable_context_menu'  => array(
 				'type' => 'boolean',
 			),
@@ -153,6 +159,9 @@ class AllPoints extends Base {
 				'type' => 'boolean',
 			),
 			'gutenberg_place_controls_at_the_top'  => array(
+				'type' => 'boolean',
+			),
+			'gutenberg_close_widget_default'  => array(
 				'type' => 'boolean',
 			),
 			// Legacy
@@ -262,6 +271,26 @@ class AllPoints extends Base {
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'update_presets' ),
+				'permission_callback' => array( $this, 'verify_nonce' ),
+			)
+		);
+
+		register_rest_route(
+			CORE_FRAMEWORK_NAME . '/v2',
+			'/upload-fonts',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_font_upload' ),
+				'permission_callback' => array( $this, 'verify_nonce' ),
+			)
+		);
+
+		register_rest_route(
+			CORE_FRAMEWORK_NAME . '/v2',
+			'/get-core-fonts',
+			array(
+				'methods' 						=> \WP_REST_Server::READABLE,
+				'callback' 						=> array( $this, 'get_core_fonts' ),
 				'permission_callback' => array( $this, 'verify_nonce' ),
 			)
 		);
@@ -594,6 +623,60 @@ class AllPoints extends Base {
 			)
 		);
 	}
+
+	public function handle_font_upload(\WP_REST_Request $request) {
+		$upload_dir = wp_upload_dir()['basedir'] . '/core-framework/fonts/';
+
+		if (!file_exists($upload_dir)) {
+				wp_mkdir_p($upload_dir);
+		}
+
+		$fonts = $request->get_param('fonts');
+		if (empty($fonts) || !is_array($fonts)) {
+				return new WP_Error(
+						'invalid_request',
+						'No fonts provided or invalid format.',
+						['status' => 400]
+				);
+		}
+
+		$saved_files = [];
+		$errors = [];
+
+		foreach ($fonts as $font) {
+				$font_content = base64_decode($font['font_base64']);
+				$filename = $font['filename'];
+				$file_path = $upload_dir . $filename;
+
+				if (file_put_contents($file_path, $font_content) === false) {
+						$errors[] = [
+								'filename' => $filename,
+								'error' => 'Failed to save file.'
+						];
+				} else {
+						$saved_files[] = [
+								'filename' => $filename,
+								'file_path' => $file_path
+						];
+				}
+		}
+
+		return [
+				'success' => true,
+				'saved_files' => $saved_files,
+				'errors' => $errors,
+		];
+	}
+
+	function get_core_fonts() {
+      $helper = new Helper();
+			$preset = $helper->loadPreset();
+			$preset_fonts = isset( $preset['modulesData'] ) && isset( $preset['modulesData']['FONTS'] )
+				? $preset['modulesData']['FONTS']['fonts']
+				: array();
+
+			return ['success' => true, 'fonts' => $preset_fonts];
+  }
 
 	/**
 	 * Delete a row from the 'core_framework_presets' table

@@ -13,6 +13,27 @@
         };
         observer.observe(target, Object.assign(Object.assign({}, DEFAULT_OPTIONS), options));
     };
+    const getUniqueVariables = (styles) => {
+        const filteredStyles = {};
+        for (const groupKey in styles) {
+            const group = styles[groupKey];
+            if (!group)
+                continue;
+            const seenVariables = new Set();
+            filteredStyles[groupKey] = Object.keys(group).reduce((acc, key) => {
+                const value = group[key];
+                if (key === "Contextual variables" && Array.isArray(value)) {
+                    acc[key] = value;
+                    value.forEach((v) => seenVariables.add(v));
+                }
+                else if (Array.isArray(value)) {
+                    acc[key] = value.filter((v) => !seenVariables.has(v) && seenVariables.add(v));
+                }
+                return acc;
+            }, {});
+        }
+        return filteredStyles;
+    };
     const throttle = (fn, wait = 300) => {
         let inThrottle;
         let lastFn;
@@ -34,6 +55,9 @@
             }, Math.max(wait - (Date.now() - lastTime), 0));
         };
     };
+    const getChild = (children, data) => {
+        return children.find(child => { var _a; return (_a = child.textContent) === null || _a === void 0 ? void 0 : _a.trim().includes(data.family); });
+    };
     const DEFAULT_CORE_FRAMEWORK_CONNECTOR = {
         theme_mode: "light",
         bricks_enable_dark_mode_preview: true,
@@ -44,6 +68,7 @@
         bricks_apply_class_on_hover: true,
         bricks_apply_variable_on_hover: true,
         bricks_enable_variable_context_menu: true,
+        bricks_bem_generator: true,
         oxygen_enable_variable_dropdown: true,
         oxygen_enable_dark_mode_preview: true,
         oxygen_enable_variable_ui_auto_hide: true,
@@ -89,7 +114,7 @@
     })(ThemeClasses || (ThemeClasses = {}));
     const log = (message, ...args) => console.log(`[Core Framework] ${message}`, ...args);
     const addThemeToggleButton = () => {
-        var _a, _b;
+        var _a, _b, _c;
         if (!assertOption("oxygen_enable_dark_mode_preview")) {
             return;
         }
@@ -98,6 +123,8 @@
         const leftPanel = document.querySelector(".oxygen-toolbar-panel");
         const toggleButton = document.createElement("div");
         const THEME_TOGGLE_BUTTON_CLASS = "cf-theme-toggle-button";
+        const savedTheme = (_c = window === null || window === void 0 ? void 0 : window.localStorage) === null || _c === void 0 ? void 0 : _c.getItem("cf-theme");
+        const isDark = savedTheme === "dark";
         if (!leftPanel) {
             log("Left panel not found");
             return;
@@ -107,6 +134,7 @@
         toggleButtonIconLight.setAttribute("xmlns", "http://www.w3.org/2000/svg");
         toggleButtonIconLight.setAttribute("stroke", "currentColor");
         toggleButtonIconLight.setAttribute("viewBox", "0 0 512 512");
+        toggleButtonIconLight.style.display = !isDark ? "block" : "none";
         const toggleButtonIconLightPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
         toggleButtonIconLightPath.setAttribute("d", "M375.7 19.7c-1.5-8-6.9-14.7-14.4-17.8s-16.1-2.2-22.8 2.4L256 61.1 173.5 4.2c-6.7-4.6-15.3-5.5-22.8-2.4s-12.9 9.8-14.4 17.8l-18.1 98.5L19.7 136.3c-8 1.5-14.7 6.9-17.8 14.4s-2.2 16.1 2.4 22.8L61.1 256 4.2 338.5c-4.6 6.7-5.5 15.3-2.4 22.8s9.8 13 17.8 14.4l98.5 18.1 18.1 98.5c1.5 8 6.9 14.7 14.4 17.8s16.1 2.2 22.8-2.4L256 450.9l82.5 56.9c6.7 4.6 15.3 5.5 22.8 2.4s12.9-9.8 14.4-17.8l18.1-98.5 98.5-18.1c8-1.5 14.7-6.9 17.8-14.4s2.2-16.1-2.4-22.8L450.9 256l56.9-82.5c4.6-6.7 5.5-15.3 2.4-22.8s-9.8-12.9-17.8-14.4l-98.5-18.1L375.7 19.7zM269.6 110l65.6-45.2 14.4 78.3c1.8 9.8 9.5 17.5 19.3 19.3l78.3 14.4L402 242.4c-5.7 8.2-5.7 19 0 27.2l45.2 65.6-78.3 14.4c-9.8 1.8-17.5 9.5-19.3 19.3l-14.4 78.3L269.6 402c-8.2-5.7-19-5.7-27.2 0l-65.6 45.2-14.4-78.3c-1.8-9.8-9.5-17.5-19.3-19.3L64.8 335.2 110 269.6c5.7-8.2 5.7-19 0-27.2L64.8 176.8l78.3-14.4c9.8-1.8 17.5-9.5 19.3-19.3l14.4-78.3L242.4 110c8.2 5.7 19 5.7 27.2 0zM256 368a112 112 0 1 0 0-224 112 112 0 1 0 0 224zM192 256a64 64 0 1 1 128 0 64 64 0 1 1 -128 0z");
         toggleButtonIconLight.appendChild(toggleButtonIconLightPath);
@@ -117,7 +145,7 @@
         const toggleButtonIconDarkPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
         toggleButtonIconDarkPath.setAttribute("d", "M144.7 98.7c-21 34.1-33.1 74.3-33.1 117.3c0 98 62.8 181.4 150.4 211.7c-12.4 2.8-25.3 4.3-38.6 4.3C126.6 432 48 353.3 48 256c0-68.9 39.4-128.4 96.8-157.3zm62.1-66C91.1 41.2 0 137.9 0 256C0 379.7 100 480 223.5 480c47.8 0 92-15 128.4-40.6c1.9-1.3 3.7-2.7 5.5-4c4.8-3.6 9.4-7.4 13.9-11.4c2.7-2.4 5.3-4.8 7.9-7.3c5-4.9 6.3-12.5 3.1-18.7s-10.1-9.7-17-8.5c-3.7 .6-7.4 1.2-11.1 1.6c-5 .5-10.1 .9-15.3 1c-1.2 0-2.5 0-3.7 0c-.1 0-.2 0-.3 0c-96.8-.2-175.2-78.9-175.2-176c0-54.8 24.9-103.7 64.1-136c1-.9 2.1-1.7 3.2-2.6c4-3.2 8.2-6.2 12.5-9c3.1-2 6.3-4 9.6-5.8c6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-3.6-.3-7.1-.5-10.7-.6c-2.7-.1-5.5-.1-8.2-.1c-3.3 0-6.5 .1-9.8 .2c-2.3 .1-4.6 .2-6.9 .4z");
         toggleButtonIconDark.appendChild(toggleButtonIconDarkPath);
-        toggleButtonIconDark.style.display = "none";
+        toggleButtonIconDark.style.display = isDark ? "block" : "none";
         toggleButton.appendChild(toggleButtonIconDark);
         leftPanel.appendChild(toggleButton);
         const style = document.createElement("style");
@@ -172,7 +200,7 @@
             html === null || html === void 0 ? void 0 : html.classList.add(savedTheme ? `cf-theme-${savedTheme}` : defaultTheme);
         }, 5));
         toggleButton.addEventListener("click", () => {
-            var _a, _b;
+            var _a, _b, _c;
             const iframeDocument = (_a = document.getElementById(CT_IFRAME_ID)) === null || _a === void 0 ? void 0 : _a.contentDocument;
             if (!iframeDocument) {
                 log("Iframe document not found");
@@ -183,8 +211,16 @@
                 log("Iframe html not found");
                 return;
             }
-            iframeHtml.classList.toggle(ThemeClasses.DARK);
-            iframeHtml.classList.toggle(ThemeClasses.LIGHT);
+            const theme = (_b = window === null || window === void 0 ? void 0 : window.localStorage) === null || _b === void 0 ? void 0 : _b.getItem("cf-theme");
+            const isDefaultDark = theme === "dark";
+            if (isDefaultDark) {
+                iframeHtml.classList.remove(ThemeClasses.DARK);
+                iframeHtml.classList.add(ThemeClasses.LIGHT);
+            }
+            else {
+                iframeHtml.classList.remove(ThemeClasses.LIGHT);
+                iframeHtml.classList.add(ThemeClasses.DARK);
+            }
             const html = document.querySelector("html");
             html === null || html === void 0 ? void 0 : html.classList.toggle(ThemeClasses.DARK);
             html === null || html === void 0 ? void 0 : html.classList.toggle(ThemeClasses.LIGHT);
@@ -192,13 +228,13 @@
             const toggleButtonIconDark = toggleButton.querySelector("svg:last-child");
             const isDark = iframeHtml.classList.contains(ThemeClasses.DARK);
             if (toggleButtonIconLight) {
-                toggleButtonIconLight.style.display = isDark ? "block" : "none";
+                toggleButtonIconLight.style.display = isDefaultDark ? "block" : "none";
             }
             if (toggleButtonIconDark) {
-                toggleButtonIconDark.style.display = isDark ? "none" : "block";
+                toggleButtonIconDark.style.display = isDefaultDark ? "none" : "block";
             }
-            flipToggles(isDark ? "light" : "dark");
-            (_b = window === null || window === void 0 ? void 0 : window.localStorage) === null || _b === void 0 ? void 0 : _b.setItem("cf-theme", isDark ? "dark" : "light");
+            flipToggles(!isDefaultDark ? "light" : "dark");
+            (_c = window === null || window === void 0 ? void 0 : window.localStorage) === null || _c === void 0 ? void 0 : _c.setItem("cf-theme", !isDefaultDark ? "dark" : "light");
         });
     };
     const modifyClass = (className, action) => {
@@ -320,7 +356,8 @@
             const isColorPicker = (_a = input.parentElement) === null || _a === void 0 ? void 0 : _a.classList.contains("oxygen-color-picker");
             const isFontSize = input.dataset.option === "font-size";
             let output = [];
-            for (const [key, value] of Object.entries(this.variablesGroups)) {
+            for (let [key, value] of Object.entries(this.variablesGroups)) {
+                value = typeof value === "object" ? Object.values(value) : value;
                 if (isColorPicker && key === "colorStyles") {
                     output = [...value];
                     break;
@@ -1193,7 +1230,7 @@
                     log("No variables found. Please save changes again in the Core Framework plugin.");
                     return false;
                 }
-                this.variables = json.variables;
+                this.variables = getUniqueVariables(json.variables);
                 if (!json.color_system_data) {
                     log("No color system data found. Please save changes again in the Core Framework plugin.");
                     return false;
@@ -1295,11 +1332,206 @@
             }
         }
     }
+    class Fonts {
+        constructor() {
+            this.fonts = [];
+            this.init();
+        }
+        async init() {
+            await this.setFonts();
+            let prevEventMap = new Map();
+            observe({
+                selector: `#oxygen-sidebar`,
+                callback: (mutationsList) => {
+                    const isCoreGroupAdded = mutationsList.some(mutation => {
+                        return [...mutation.addedNodes].some((node) => {
+                            return node.nodeType === Node.ELEMENT_NODE && node.id === 'core-subtitle'
+                                || node.id === 'core-icon';
+                        });
+                    });
+                    if (!isCoreGroupAdded) {
+                        const fontFamilyDropdown = document.getElementById('oxygen-typography-font-family');
+                        const input = fontFamilyDropdown === null || fontFamilyDropdown === void 0 ? void 0 : fontFamilyDropdown.querySelector('input');
+                        const onChange = (dropdown) => {
+                            this.applyCoreOptionsView(dropdown, true);
+                        };
+                        fontFamilyDropdown && this.applyCoreOptionsView(fontFamilyDropdown, true);
+                        if (input && !prevEventMap.get(input)) {
+                            input.addEventListener('input', () => onChange(fontFamilyDropdown));
+                            prevEventMap.set(input, () => onChange(fontFamilyDropdown));
+                        }
+                    }
+                },
+                options: {
+                    subtree: true,
+                    childList: true,
+                    attributes: false,
+                },
+            });
+            observe({
+                selector: `#oxygen-global-settings`,
+                callback: (mutationsList) => {
+                    const isCoreGroupAdded = mutationsList.some(mutation => {
+                        return [...mutation.addedNodes].some((node) => {
+                            return node.nodeType === Node.ELEMENT_NODE && node.id === 'core-subtitle'
+                                || node.id === 'core-icon';
+                        });
+                    });
+                    if (!isCoreGroupAdded) {
+                        const settingsFontDropdownList = document.querySelectorAll('.oxygen-control-global-font');
+                        const onChange = (dropdown) => {
+                            this.applyCoreOptionsView(dropdown);
+                        };
+                        settingsFontDropdownList.forEach((dropdown) => {
+                            this.applyCoreOptionsView(dropdown);
+                            const input = dropdown.querySelector('input');
+                            if (input && !prevEventMap.get(input)) {
+                                input.addEventListener('input', () => onChange(dropdown));
+                                prevEventMap.set(input, () => onChange(dropdown));
+                            }
+                        });
+                    }
+                },
+                options: {
+                    subtree: true,
+                    childList: true,
+                    attributes: false
+                },
+            });
+        }
+        async setFonts() {
+            window.coreframework = {
+                nonce: window.wpApiSettings.nonce,
+                rest_url: window.wpApiSettings.root,
+                core_api_url: `${window.wpApiSettings.root}core-framework/v2/`,
+            };
+            try {
+                const response = await fetch(`${window.coreframework.core_api_url}get-core-fonts`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': window.coreframework.nonce,
+                    }
+                });
+                const { fonts } = await response.json();
+                this.fonts = fonts.filter((font) => font.enable);
+            }
+            catch (e) {
+                console.log(e);
+            }
+        }
+        applyCoreOptionsView(wrapperSelector, isSidebar = false) {
+            const mainOxyFonts = Object.values(window.$scope.iframeScope.globalSettings.fonts) || [];
+            const yabeFonts = window['core_yabe_fonts'] || [];
+            const fontsWrapper = wrapperSelector.querySelector('.oxygen-select-box-options');
+            const coreSubtitle = wrapperSelector.querySelector("#core-subtitle");
+            coreSubtitle === null || coreSubtitle === void 0 ? void 0 : coreSubtitle.remove();
+            if (fontsWrapper && this.fonts.length) {
+                const children = Array.from(fontsWrapper.children);
+                const coreSubTitle = document.createElement("div");
+                let theLastFontOption = null, theFirstFontOption = null;
+                coreSubTitle.setAttribute('id', 'core-subtitle');
+                coreSubTitle.textContent = 'Core Framework';
+                coreSubTitle.classList.add('oxygen-select-box-option');
+                Object.assign(coreSubTitle.style, {
+                    backgroundColor: 'var(--oxy-dark)',
+                    fontWeight: 700,
+                    letterSpacing: '.2px',
+                    pointerEvents: 'none',
+                    textTransform: 'uppercase'
+                });
+                this.fonts.forEach((font) => {
+                    var _a, _b;
+                    const targetFontOption = getChild(children, font);
+                    const isConflictedFont = yabeFonts.includes(font.family);
+                    const coreSub = fontsWrapper.querySelector("#core-subtitle");
+                    coreSub && coreSub.remove();
+                    if (targetFontOption && isConflictedFont) {
+                        targetFontOption.style.setProperty("border-bottom", "none");
+                        (_a = targetFontOption.querySelector('#core-icon')) === null || _a === void 0 ? void 0 : _a.remove();
+                    }
+                    if (targetFontOption && !isConflictedFont) {
+                        const check = isSidebar ? !mainOxyFonts.includes(font.family) : true;
+                        if (check) {
+                            theLastFontOption = targetFontOption;
+                            !theFirstFontOption && (theFirstFontOption = targetFontOption);
+                        }
+                        targetFontOption.style.setProperty("justify-content", "space-between");
+                        targetFontOption.style.setProperty("border-bottom", "none");
+                        const coreIcon = document.createElement("span");
+                        coreIcon.setAttribute('id', 'core-icon');
+                        Object.assign(coreIcon.style, {
+                            width: '13px',
+                            height: '13px',
+                            padding: '0',
+                            background: 'none'
+                        });
+                        coreIcon.innerHTML = `
+							<svg 
+								id="b" 
+								xmlns="http://www.w3.org/2000/svg" 
+								viewBox="0 0 31.82 24.84"
+							>
+								<defs>
+									<linearGradient id="e" x1="3.77" y1="7.44" x2="31.03" y2="24.04" gradientTransform="translate(0 26) scale(1 -1)" gradientUnits="userSpaceOnUse">
+										<stop offset="0" stop-color="#5c68f9"></stop>
+										<stop offset="1" stop-color="#8e97fe"></stop>
+									</linearGradient>
+									<linearGradient id="f" x1="8.16" y1=".31" x2="13.63" y2="17.26" gradientTransform="translate(0 26) scale(1 -1)" gradientUnits="userSpaceOnUse">
+										<stop offset="0" stop-color="#5c68f9" stop-opacity="0"></stop>
+										<stop offset=".08" stop-color="#5561f4" stop-opacity=".1"></stop>
+										<stop offset=".32" stop-color="#434ce6" stop-opacity=".42"></stop>
+										<stop offset=".55" stop-color="#343cdc" stop-opacity=".67"></stop>
+										<stop offset=".74" stop-color="#2930d4" stop-opacity=".85"></stop>
+										<stop offset=".9" stop-color="#2329cf" stop-opacity=".96"></stop>
+										<stop offset="1" stop-color="#2127ce"></stop>
+									</linearGradient>
+								</defs>
+								<g id="c">
+									<g id="d">
+										<rect x="18.78" y="10.68" width="13.03" height="7.07" style="fill:#fa5e5e;"></rect>
+										<path d="m12.42,0C5.56,0,0,5.56,0,12.42h0c0,6.86,5.56,12.42,12.42,12.42h6.37v-7.07h-6.37c-2.95,0-5.35-2.39-5.35-5.35h0c0-2.95,2.39-5.35,5.35-5.35h19.4V0H12.42Z" style="fill:#7d87fc;"></path>
+										path d="m7.07,12.42h0c0-1.23.43-2.35,1.13-3.25h-.02L.74,16.6c1.72,4.79,6.3,8.23,11.68,8.23h6.37v-7.07h-6.37c-2.95,0-5.35-2.39-5.35-5.35h0Z" style="fill:#424ae1;"></path>
+									</g>
+								</g>
+							</svg>
+						`;
+                        if (mainOxyFonts.includes(font.family) && isSidebar) {
+                            targetFontOption.style.setProperty("border-bottom", "none");
+                            (_b = targetFontOption.querySelector('#core-icon')) === null || _b === void 0 ? void 0 : _b.remove();
+                        }
+                        else {
+                            targetFontOption.textContent = `${font.title} (${font.family})`;
+                            targetFontOption.appendChild(coreIcon);
+                        }
+                    }
+                });
+                theLastFontOption
+                    && (theLastFontOption.style.borderBottom = "2px solid var(--oxy-dark)");
+                theFirstFontOption && fontsWrapper.insertBefore(coreSubTitle, theFirstFontOption);
+                theFirstFontOption = null;
+            }
+        }
+    }
     const main = () => {
         addThemeToggleButton();
         applyClassOnHover();
         new VariableAutoComplete();
         new VariableUi();
+        const pageLoader = document.querySelector("#oxy-page-loader");
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(() => {
+                const isLoaded = window.getComputedStyle(pageLoader).display === 'none';
+                if (isLoaded) {
+                    observer.disconnect();
+                    new Fonts();
+                }
+            });
+        });
+        observer.observe(pageLoader, {
+            childList: true,
+            subtree: true
+        });
     };
     document.addEventListener("DOMContentLoaded", main);
 })();

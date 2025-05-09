@@ -16,6 +16,7 @@ namespace CoreFramework\App\Oxygen;
 
 use CoreFramework\Common\Abstracts\Base;
 use CoreFramework\Helper;
+use Yabe\Webfont\Utils\Font;
 
 /**
  * Class Oxygen
@@ -71,6 +72,8 @@ class Functions extends Base {
 		 *
 		 * Add plugin code here
 		 */
+		 \add_action( 'wp_enqueue_scripts', array( $this, 'add_corresponding_css' ), 9999, 12 );
+		 \add_action( 'ct_builder_ng_init', fn() => $this->elegant_custom_fonts(), 1000001);
 	}
 
 	/**
@@ -109,6 +112,19 @@ class Functions extends Base {
 		}
 
 		update_option( self::OXYGEN_COMPONENTS_CLASSES_OPTION, $ct_class_names, false );
+	}
+
+	public function elegant_custom_fonts() {
+		$helper = new Helper();
+		$preset = $helper->loadPreset();
+		$preset_fonts = isset( $preset['modulesData'] ) && isset( $preset['modulesData']['FONTS'] )
+			? $preset['modulesData']['FONTS']['fonts']
+			: array();
+		$customCoreFontFamilies = array_column($preset_fonts, 'family');
+
+		$output = \json_encode($customCoreFontFamilies, \JSON_THROW_ON_ERROR);
+		$output = \htmlspecialchars($output, \ENT_QUOTES);
+		echo \sprintf('elegantCustomFonts=%s;', $output);
 	}
 
 	/**
@@ -344,6 +360,52 @@ class Functions extends Base {
 	}
 
 	/**
+	 * Apply inline styles to root
+	 *
+	 * @return void
+	 */
+	public function add_corresponding_css() {
+  		$helper = new Helper();
+  		$preset = $helper->loadPreset();
+  		$preset_fonts = isset( $preset['modulesData'] ) && isset( $preset['modulesData']['FONTS'] )
+  			? $preset['modulesData']['FONTS']['fonts']
+  			: array();
+  		$css = '';
+
+  		function merge_root_selectors($cssString) {
+          $rootRegex = '/:root\s*\{\s*([^}]*)\s*\}/m';
+          $mergedVariables = '';
+
+          if (preg_match_all($rootRegex, $cssString, $matches)) {
+              foreach ($matches[1] as $match) {
+                  $props = explode(';', $match);
+
+                  foreach ($props as $prop) {
+                      $prop = trim($prop);
+                      if (!empty($prop)) {
+                          $mergedVariables .= "  " . $prop . ";\n";
+                      }
+                  }
+              }
+          }
+
+          $cleanedCss = preg_replace($rootRegex, '', $cssString);
+          $cleanedCss = trim($cleanedCss);
+          $mergedRoot = ":root {\n{$mergedVariables}}";
+
+          return $mergedRoot . "\n\n" . $cleanedCss;
+      }
+
+  		foreach ( $preset_fonts as $font ) {
+  				$css .= $font['cssPreview'];
+  		}
+
+  		wp_register_style( 'core-framework-fonts-inline', false );
+  		wp_enqueue_style( 'core-framework-fonts-inline' );
+  		wp_add_inline_style( 'core-framework-fonts-inline', merge_root_selectors($css) );
+  	}
+
+	/**
 	 * Enqueue styles in oxygen builder iframe
 	 *
 	 * @return void
@@ -363,6 +425,16 @@ class Functions extends Base {
 	 */
 	public function enqueue_helper() {
 		CoreFramework()->enqueue_core_framework_connector();
+
+		if (class_exists('Yabe\Webfont\Utils\Font')) {
+        $yabe_fonts = \json_encode(\array_column(Font::get_fonts(), 'family'), \JSON_THROW_ON_ERROR);
+        $js = 'window.core_yabe_fonts = ' . $yabe_fonts . ';';
+				$name = 'core-framework-fonts';
+
+				\wp_register_script( $name, '', array(), strval( time() ) );
+				\wp_enqueue_script( $name );
+				\wp_add_inline_script( $name, $js, 'before' );
+    }
 
 		$name       = 'core_framework_oxygen_css_helper';
 		$css_string = get_option(

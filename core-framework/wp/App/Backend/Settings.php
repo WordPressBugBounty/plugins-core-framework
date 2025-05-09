@@ -45,10 +45,8 @@ class Settings extends Base {
 		 		$preset = $helper->loadPreset();
 		 		$plugin_file = CORE_FRAMEWORK_MAIN_FILE;
 
-				if (isset($preset['pluginName'])) {
-					$plugins[$plugin_file]['Name'] = trim($preset['pluginName'])
-						? $preset['pluginName'] : $this->plugin->namespace();
-				}
+				$plugins[$plugin_file]['Name'] = isset($preset['pluginName']) && trim($preset['pluginName'])
+					? $preset['pluginName'] : $this->plugin->name();
 
 				if (isset($preset['pluginAuthor'])) {
 					$plugins[$plugin_file]['Author'] = trim($preset['pluginAuthor'])
@@ -70,7 +68,7 @@ class Settings extends Base {
 				$preset = $helper->loadPreset();
       	$dynamicPluginName = isset($preset['pluginName']) && !empty(trim($preset['pluginName']))
       		? $preset['pluginName']
-      		: $this->plugin->namespace();
+      		: $this->plugin->name();
 
 				\add_menu_page(
 					'',
