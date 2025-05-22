@@ -74,7 +74,7 @@ class Gutenberg extends Base {
 		);
 
 		foreach ( glob( plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . 'gutenberg-blocks/*' ) as $dir ) {
-			register_block_type( $dir );
+			register_block_type_from_metadata( $dir );
 		}
 	}
 }

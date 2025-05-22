@@ -644,21 +644,21 @@ class AllPoints extends Base {
 		$errors = [];
 
 		foreach ($fonts as $font) {
-				$font_content = base64_decode($font['font_base64']);
-				$filename = $font['filename'];
-				$file_path = $upload_dir . $filename;
+			$font_content = base64_decode($font['font_base64']);
+			$filename = $font['filename'];
+			$file_path = $upload_dir . $filename;
 
-				if (file_put_contents($file_path, $font_content) === false) {
-						$errors[] = [
-								'filename' => $filename,
-								'error' => 'Failed to save file.'
-						];
-				} else {
-						$saved_files[] = [
-								'filename' => $filename,
-								'file_path' => $file_path
-						];
-				}
+			if (file_put_contents($file_path, $font_content) === false) {
+				$errors[] = [
+					'filename' => $filename,
+					'error' => 'Failed to save file.'
+				];
+			} else {
+				$saved_files[] = [
+					'filename' => $filename,
+					'file_path' => $file_path
+				];
+			}
 		}
 
 		return [

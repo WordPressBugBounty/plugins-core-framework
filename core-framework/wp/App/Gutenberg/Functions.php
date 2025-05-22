@@ -41,7 +41,7 @@ class Functions extends Base {
 		}
 
 		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_scripts' ) );
-		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_styles' ) );
+		add_action( 'enqueue_block_assets', array( $this, 'enqueue_styles' ) );
 
 		if ( is_admin() ) {
 			add_action( 'enqueue_block_assets', array( $this, 'enqueue_iframe_styles' ) );
