@@ -22,6 +22,7 @@ class ThemeToggle extends OxyEl {
 	}
 
 	function button_place() {
+		return '';
 	}
 
 	function button_priority() {

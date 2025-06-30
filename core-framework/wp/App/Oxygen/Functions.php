@@ -429,11 +429,11 @@ class Functions extends Base {
 		if (class_exists('Yabe\Webfont\Utils\Font')) {
         $yabe_fonts = \json_encode(\array_column(Font::get_fonts(), 'family'), \JSON_THROW_ON_ERROR);
         $js = 'window.core_yabe_fonts = ' . $yabe_fonts . ';';
-				$name = 'core-framework-fonts';
+        $name = 'core-framework-fonts';
 
-				\wp_register_script( $name, '', array(), strval( time() ) );
-				\wp_enqueue_script( $name );
-				\wp_add_inline_script( $name, $js, 'before' );
+        \wp_register_script( $name, '', array(), strval( time() ) );
+        \wp_enqueue_script( $name );
+        \wp_add_inline_script( $name, $js, 'before' );
     }
 
 		$name       = 'core_framework_oxygen_css_helper';

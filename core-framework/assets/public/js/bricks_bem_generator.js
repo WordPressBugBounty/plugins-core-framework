@@ -225,8 +225,17 @@ var _a;
         addBemButton(element) {
             const vueApp = this;
             const actionsList = element.querySelector(".actions");
-            if (!actionsList || actionsList.querySelector(".bem-generator"))
+            const titleDiv = element.querySelector(".title");
+            if (!actionsList && !titleDiv)
                 return;
+            if (actionsList) {
+                if (actionsList.querySelector(".bem-generator"))
+                    return;
+            }
+            else {
+                if (titleDiv === null || titleDiv === void 0 ? void 0 : titleDiv.querySelector(".bem-generator"))
+                    return;
+            }
             const bemButton = document.createElement("span");
             bemButton.innerHTML = `
                 <svg 
@@ -268,11 +277,17 @@ var _a;
                 const elementId = (_a = element === null || element === void 0 ? void 0 : element.closest(".bricks-draggable-item")) === null || _a === void 0 ? void 0 : _a.getAttribute("data-id");
                 elementId && vueApp.showBemPopup(elementId);
             });
-            const bemActionLi = document.createElement("li");
-            bemActionLi.classList.add("action", "bem");
-            bemActionLi.style.width = "22px";
-            bemActionLi.append(bemButton);
-            actionsList.append(bemActionLi);
+            if (actionsList) {
+                const bemActionLi = document.createElement("li");
+                bemActionLi.classList.add("action", "bem");
+                bemActionLi.style.width = "22px";
+                bemActionLi.append(bemButton);
+                actionsList.append(bemActionLi);
+            }
+            else if (titleDiv) {
+                const iconDiv = titleDiv.querySelector(".icon");
+                iconDiv && iconDiv.insertAdjacentElement('afterend', bemButton);
+            }
         }
         applyBemButtomToPanelElements() {
             const vueApp = this;

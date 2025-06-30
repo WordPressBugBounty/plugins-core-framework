@@ -99,12 +99,13 @@ var ThemeClasses;
         return children.find(child => { var _a; return (_a = child.textContent) === null || _a === void 0 ? void 0 : _a.trim().includes(data.family); });
     };
     const addThemeToggleButton = () => {
-        var _a, _b, _c, _d;
+        var _a, _b, _c;
         if (!assertOption("bricks_enable_dark_mode_preview")) {
             return;
         }
         const themeMode = (_b = (_a = window === null || window === void 0 ? void 0 : window.core_framework_connector) === null || _a === void 0 ? void 0 : _a.theme_mode) !== null && _b !== void 0 ? _b : "light";
-        const leftPanel = document.querySelector("#bricks-toolbar .group-wrapper.left");
+        const leftPanel = document.querySelector("#bricks-toolbar .group-wrapper.left")
+            || document.querySelector("#bricks-toolbar .group-wrapper.start");
         const THEME_TOGGLE_BUTTON_CLASS = "cf-theme-toggle-button";
         const BUILDER_TOGGLE_BUTTON_ICON_LIGHT = `
 			<svg xmlns="http://www.w3.org/2000/svg" class="cf-theme-toggle-button-icon bricks-svg" viewBox="0 0 512 512">
@@ -120,12 +121,15 @@ var ThemeClasses;
             log("Left panel not found");
             return;
         }
-        const toggleButton = (_c = leftPanel.querySelector("li.settings")) === null || _c === void 0 ? void 0 : _c.cloneNode(true);
+        const liButton = leftPanel.querySelector("li.settings")
+            || leftPanel.querySelector("li.pages");
+        const toggleButton = liButton === null || liButton === void 0 ? void 0 : liButton.cloneNode(true);
         if (!toggleButton) {
             log("Button not found");
             return;
         }
         toggleButton.classList.remove("settings");
+        toggleButton.classList.remove("pages");
         toggleButton.classList.add("theme-toggle");
         toggleButton.setAttribute("data-balloon", "Toggle Core Framework theme");
         const svg = toggleButton.querySelector("svg");
@@ -135,7 +139,7 @@ var ThemeClasses;
         const getSystemThemeClass = () => window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
             ? ThemeClasses.DARK
             : ThemeClasses.LIGHT;
-        (_d = document.getElementById(IFRAME_ID)) === null || _d === void 0 ? void 0 : _d.addEventListener("load", () => setTimeout(() => {
+        (_c = document.getElementById(IFRAME_ID)) === null || _c === void 0 ? void 0 : _c.addEventListener("load", () => setTimeout(() => {
             var _a, _b, _c, _d, _e;
             const iframeDocument = (_a = document.getElementById(IFRAME_ID)) === null || _a === void 0 ? void 0 : _a.contentDocument;
             const iframeHtml = iframeDocument === null || iframeDocument === void 0 ? void 0 : iframeDocument.querySelector("html");
@@ -1600,23 +1604,31 @@ var ThemeClasses;
             document.head.appendChild(style);
         }
         async selectColor({ name }) {
-            var _a, _b, _c, _d;
+            var _a, _b, _c, _d, _e;
             this.hideBricksColorPopUp();
             const isPopupAlreadyOpen = document.querySelector(".bricks-control-popup .color-palette.grid");
-            if (!isPopupAlreadyOpen) {
-                (_b = (_a = this.recentColorPickerTarget) === null || _a === void 0 ? void 0 : _a.closest(".bricks-control-preview")) === null || _b === void 0 ? void 0 : _b.click();
-                await new Promise((resolve) => setTimeout(resolve, 25));
-            }
             const colorsGrid = document.querySelector(".bricks-control-popup .color-palette.grid");
+            const colorsPalette = document.querySelector(".bricks-control-popup .color-palette");
             if (colorsGrid) {
                 const variableString = name.startsWith("var(--") ? name : `var(--${name})`;
                 const targetColor = colorsGrid.querySelector(`[data-balloon="${variableString}"]`);
-                (_c = targetColor === null || targetColor === void 0 ? void 0 : targetColor.parentElement) === null || _c === void 0 ? void 0 : _c.click();
+                (_a = targetColor === null || targetColor === void 0 ? void 0 : targetColor.parentElement) === null || _a === void 0 ? void 0 : _a.click();
+            }
+            if (colorsPalette) {
+                const variableString = name.startsWith("var(--") ? name : `var(--${name})`;
+                const colors = colorsPalette.querySelectorAll(`.color-name>span`);
+                const targetColor = Array.from(colors).reverse()
+                    .find((colorLi) => variableString.includes(colorLi.textContent));
+                (_b = targetColor === null || targetColor === void 0 ? void 0 : targetColor.parentElement) === null || _b === void 0 ? void 0 : _b.click();
             }
             else {
                 log("Failed to select color. Color grid not found.");
             }
-            (_d = document.querySelector("body")) === null || _d === void 0 ? void 0 : _d.click();
+            if (!isPopupAlreadyOpen) {
+                (_d = (_c = this.recentColorPickerTarget) === null || _c === void 0 ? void 0 : _c.closest(".bricks-control-preview")) === null || _d === void 0 ? void 0 : _d.click();
+                await new Promise((resolve) => setTimeout(resolve, 25));
+            }
+            (_e = document.querySelector("body")) === null || _e === void 0 ? void 0 : _e.click();
             await new Promise((resolve) => setTimeout(resolve, 2));
             if (document.querySelector(".bricks-control-popup")) {
                 setTimeout(() => {
@@ -1652,6 +1664,8 @@ var ThemeClasses;
                     colorWrapper.dataset.hidden = "false";
                 }
             }
+            const colorsPalette = document.querySelector(".bricks-control-popup .color-palette");
+            colorsPalette || target.click();
             this.recentColorPickerTarget = target;
             this.focusedInput = null;
             this.open();
@@ -1784,18 +1798,40 @@ var ThemeClasses;
     };
     const applyCoreOptionsView = (enabledFonts) => {
         const innerPanel = document.querySelector("#bricks-panel-inner:not(div.bricks-control-popup *)");
+        const bricksVersion = parseFloat(window.bricksData.version);
         if (!innerPanel) {
             log("Inner panel not found, can't initialize preview of variables on hover");
             return;
         }
-        const observer = new MutationObserver(() => {
-            const fontsGroups = document.querySelectorAll('#bricks-panel-inner .options-wrapper .title');
-            const coreGroup = Array.from(fontsGroups).find((group) => group.textContent === "Core Framework");
-            const fontsList = coreGroup === null || coreGroup === void 0 ? void 0 : coreGroup.closest('ul');
-            const isAlreadyAdded = fontsList === null || fontsList === void 0 ? void 0 : fontsList.querySelector('.core-icon');
-            if (fontsList && !isAlreadyAdded) {
+        const observer = new MutationObserver((mutations) => {
+            var _a;
+            let fontsList;
+            if (bricksVersion >= 2) {
+                const fontsSelect = (_a = document.querySelector("label[for='font-family']")) === null || _a === void 0 ? void 0 : _a.nextElementSibling;
+                fontsList = fontsSelect === null || fontsSelect === void 0 ? void 0 : fontsSelect.querySelector('ul');
+            }
+            else {
+                const fontsGroups = document.querySelectorAll('#bricks-panel-inner .options-wrapper .title');
+                const coreGroup = Array.from(fontsGroups).find((group) => group.textContent === "Core Framework");
+                fontsList = coreGroup === null || coreGroup === void 0 ? void 0 : coreGroup.closest('ul');
+            }
+            const coreIcons = fontsList === null || fontsList === void 0 ? void 0 : fontsList.querySelectorAll('.core-icon');
+            const coreGroupLi = document.getElementById("core-group");
+            const isCoreMutations = mutations.some((mutation) => {
+                return Array.from(mutation.addedNodes).some((addedNode) => {
+                    return addedNode.nodeType === Node.ELEMENT_NODE && addedNode.id === 'core-group'
+                        || addedNode.id === 'core-icon';
+                });
+            });
+            if (fontsList && !isCoreMutations) {
+                coreIcons === null || coreIcons === void 0 ? void 0 : coreIcons.forEach((icon) => icon.remove());
+                coreGroupLi === null || coreGroupLi === void 0 ? void 0 : coreGroupLi.remove();
                 const children = Array.from(fontsList.children);
-                enabledFonts.forEach((font) => {
+                enabledFonts.sort((a, b) => {
+                    if (bricksVersion >= 2)
+                        [b, a] = [a, b];
+                    return a.family.localeCompare(b.family);
+                }).forEach((font) => {
                     const targetFontOption = getChild(children, font);
                     if (targetFontOption) {
                         Object.assign(targetFontOption.style, {
@@ -1807,6 +1843,7 @@ var ThemeClasses;
                         coreIcon.style.setProperty("width", "13px");
                         coreIcon.style.setProperty("height", "13px");
                         coreIcon.classList.add("core-icon");
+                        coreIcon.setAttribute("id", "core-icon");
                         coreIcon.innerHTML = `
 							<svg 
 								id="b" 
@@ -1840,8 +1877,17 @@ var ThemeClasses;
 							</svg>
 						`;
                         targetFontOption.appendChild(coreIcon);
+                        bricksVersion >= 2 && (fontsList === null || fontsList === void 0 ? void 0 : fontsList.insertBefore(targetFontOption, fontsList.firstChild));
                     }
                 });
+                const subGroup = fontsList.querySelector(".title");
+                if (document.querySelectorAll(".core-icon").length === enabledFonts.length
+                    && subGroup && bricksVersion >= 2) {
+                    const coreGroup = subGroup === null || subGroup === void 0 ? void 0 : subGroup.cloneNode();
+                    coreGroup.setAttribute("id", "core-group");
+                    coreGroup.textContent = "Core Framework";
+                    fontsList.prepend(coreGroup);
+                }
             }
         });
         observer.observe(innerPanel, {
@@ -1854,11 +1900,17 @@ var ThemeClasses;
         const enabledFonts = await getFonts();
         const bricksData = window.bricksData;
         const bricksFonts = findNestedValueByKey(bricksData, "fonts");
-        const fontsOptionsMap = enabledFonts.reduce((acc, font) => (Object.assign(Object.assign({}, acc), { [font.family]: font.title })), {});
+        const fontsOptionsMap = enabledFonts.reduce((acc, font) => (Object.assign(Object.assign({}, acc), { [font.family]: font.family })), {});
         const coreGroup = { "coreFontsGroupTitle": "Core Framework" };
         if (enabledFonts.length && bricksFonts) {
             bricksFonts.options = Object.assign(Object.assign(Object.assign({}, coreGroup), fontsOptionsMap), bricksFonts.options);
             bricksFonts.core = enabledFonts.map((font) => (Object.assign(Object.assign({}, font), { files: [] })));
+            if (parseFloat(bricksData.version) >= 2) {
+                const parsedCoreFonts = enabledFonts.reduce((acc, font) => {
+                    return Object.assign(Object.assign({}, acc), { [font.family]: { id: font.id, family: font.family, fontFace: null } });
+                }, {});
+                bricksFonts.custom = Object.assign(bricksFonts.custom || {}, parsedCoreFonts);
+            }
             applyCoreOptionsView(enabledFonts);
         }
     };

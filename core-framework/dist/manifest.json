@@ -1,6 +1,6 @@
 {
   "../node_modules/canvg/lib/index.es.js": {
-    "file": "index.es-c962021b.js",
+    "file": "index.es-b9696e2a.js",
     "imports": [
       "main.tsx"
     ],
@@ -31,7 +31,7 @@
       "../node_modules/dompurify/dist/purify.es.js",
       "../node_modules/canvg/lib/index.es.js"
     ],
-    "file": "main-12b0b20e.js",
+    "file": "main-f4c644fa.js",
     "isEntry": true,
     "src": "main.tsx"
   }

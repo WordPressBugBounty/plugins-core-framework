@@ -287,6 +287,16 @@ class AllPoints extends Base {
 
 		register_rest_route(
 			CORE_FRAMEWORK_NAME . '/v2',
+			'/delete-fonts',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'handle_font_delete' ),
+				'permission_callback' => array( $this, 'verify_nonce' ),
+			)
+		);
+
+		register_rest_route(
+			CORE_FRAMEWORK_NAME . '/v2',
 			'/get-core-fonts',
 			array(
 				'methods' 						=> \WP_REST_Server::READABLE,
@@ -667,6 +677,57 @@ class AllPoints extends Base {
 				'errors' => $errors,
 		];
 	}
+
+	public function handle_font_delete(\WP_REST_Request $request) {
+  	$upload_dir = wp_upload_dir()['basedir'] . '/core-framework/fonts/';
+  	$fonts = $request->get_param('fonts');
+
+  	if (empty($fonts) || !is_array($fonts)) {
+  		return new WP_Error(
+  			'invalid_request',
+  			'No fonts provided or invalid format.',
+  			['status' => 400]
+  		);
+  	}
+
+  	$deleted = [];
+  	$errors = [];
+
+  	foreach ($fonts as $font) {
+  		if (!isset($font['filename'])) {
+  			$errors[] = [
+  				'filename' => null,
+  				'error' => 'Missing filename key in font entry.'
+  			];
+  			continue;
+  		}
+
+  		$sanitized = basename($font['filename']);
+  		$file_path = $upload_dir . $sanitized;
+
+  		if (file_exists($file_path)) {
+  			if (unlink($file_path)) {
+  				$deleted[] = $sanitized;
+  			} else {
+  				$errors[] = [
+  					'filename' => $sanitized,
+  					'error' => 'Failed to delete file.'
+  				];
+  			}
+  		} else {
+  			$errors[] = [
+  				'filename' => $sanitized,
+  				'error' => 'File does not exist.'
+  			];
+  		}
+  	}
+
+  	return [
+  		'success' => true,
+  		'deleted' => $deleted,
+  		'errors' => $errors,
+  	];
+  }
 
 	function get_core_fonts() {
       $helper = new Helper();

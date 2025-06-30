@@ -272,21 +272,21 @@ class CoreFrameworkThemeToggle extends \Bricks\Element {
 		\wp_enqueue_script( 'core_framework_theme' );
 
 		$css = '
-		.cf-theme-toggle-button.cf-theme-dark .cf-theme-icon.cf-light-mode-icon {
-			display: none;
-		}
-		.cf-theme-toggle-button.cf-theme-dark .cf-theme-icon.cf-dark-mode-icon {
-			display: block;
-		}
-		.cf-theme-toggle-button.cf-theme-light .cf-theme-icon.cf-light-mode-icon {
-			display: block;
-		}
-		.cf-theme-toggle-button.cf-theme-light .cf-theme-icon.cf-dark-mode-icon {
-			display: none;
-		}
-		.cf-theme-icon-button .cf-theme-icon svg {
-			display: block;
-		}
+			.cf-theme-toggle-button.cf-theme-dark .cf-theme-icon.cf-light-mode-icon {
+				display: none;
+			}
+			.cf-theme-toggle-button.cf-theme-dark .cf-theme-icon.cf-dark-mode-icon {
+				display: block;
+			}
+			.cf-theme-toggle-button.cf-theme-light .cf-theme-icon.cf-light-mode-icon {
+				display: block;
+			}
+			.cf-theme-toggle-button.cf-theme-light .cf-theme-icon.cf-dark-mode-icon {
+				display: none;
+			}
+			.cf-theme-icon-button .cf-theme-icon svg {
+				display: block;
+			}
 		';
 
 		\wp_register_style( 'core-framework-theme', false, array(), CORE_FRAMEWORK_VERSION );

@@ -95,7 +95,7 @@ class Functions extends Base {
 		}
 
 		//generate css for text color classes
-		$styles = '<style>';
+		$styles = ':root {';
 
 		for ( $i = 0; $i < count( $core_colors ); $i++ ) {
 			$slug = 'has-cf-' . sanitize_title($core_colors[ $i ]['name']) . '-color';
@@ -103,7 +103,7 @@ class Functions extends Base {
 			$styles .= ".$slug { color: {$color_value} !important; }";
 		}
 
-		$styles .= '</style>';
+		$styles .= '}';
 
 		wp_register_style( 'core-framework-inline', false );
 		wp_enqueue_style( 'core-framework-inline' );
