@@ -268,8 +268,7 @@ var _a;
                 </svg>
             `;
             bemButton.classList.add("bricks-svg-wrapper", "bem-generator");
-            bemButton.setAttribute("data-balloon", "Add BEM Classes");
-            bemButton.setAttribute("data-balloon-pos", "left");
+            bemButton.setAttribute("title", "Add BEM Classes");
             bemButton.addEventListener("click", (e) => {
                 var _a;
                 e.preventDefault();

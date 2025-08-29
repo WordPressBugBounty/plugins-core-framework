@@ -122,7 +122,7 @@ var ThemeClasses;
             return;
         }
         const liButton = leftPanel.querySelector("li.settings")
-            || leftPanel.querySelector("li.pages");
+            || leftPanel.querySelector("li.pages") || leftPanel.querySelector("li:not(.logo)");
         const toggleButton = liButton === null || liButton === void 0 ? void 0 : liButton.cloneNode(true);
         if (!toggleButton) {
             log("Button not found");
@@ -1300,7 +1300,7 @@ var ThemeClasses;
                             darkColor,
                         });
                     })) !== null && _b !== void 0 ? _b : [];
-                    if (shades.length) {
+                    if (color.isShades && shades.length) {
                         const title = document.createElement("div");
                         title.classList.add("cf-variable-ui-color-title");
                         title.textContent = `Shades of ${this.getPrefixedVariableName(color.name)}`;
@@ -1322,7 +1322,7 @@ var ThemeClasses;
                             id: `${color.id}.l.${index}`,
                         });
                     })) !== null && _d !== void 0 ? _d : [];
-                    if (tints.length) {
+                    if (color.isTints && tints.length) {
                         const title = document.createElement("div");
                         title.classList.add("cf-variable-ui-color-title");
                         title.textContent = `Tints of ${this.getPrefixedVariableName(color.name)}`;
@@ -1343,7 +1343,7 @@ var ThemeClasses;
                             id: `${color.id}.t.${color.name.split("-").slice(-1)[0]}`,
                         });
                     })) !== null && _f !== void 0 ? _f : [];
-                    if (transparent.length) {
+                    if (color.transparent && transparent.length) {
                         const title = document.createElement("div");
                         title.classList.add("cf-variable-ui-color-title");
                         title.textContent = `Transparent values of ${this.getPrefixedVariableName(color.name)}`;
