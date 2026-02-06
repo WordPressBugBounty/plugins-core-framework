@@ -19,6 +19,39 @@ use CoreFramework\Helper;
 use Yabe\Webfont\Utils\Font;
 
 /**
+ * Merge multiple :root selectors into a single one
+ *
+ * @param string $cssString The CSS string containing multiple :root selectors
+ * @return string The CSS with merged :root selectors
+ * @since 1.10.0
+ */
+if ( ! function_exists( 'merge_root_selectors' ) ) {
+	function merge_root_selectors( $cssString ) {
+		$rootRegex = '/:root\s*\{\s*([^}]*)\s*\}/m';
+		$mergedVariables = '';
+
+		if ( preg_match_all( $rootRegex, $cssString, $matches ) ) {
+			foreach ( $matches[1] as $match ) {
+				$props = explode( ';', $match );
+
+				foreach ( $props as $prop ) {
+					$prop = trim( $prop );
+					if ( ! empty( $prop ) ) {
+						$mergedVariables .= "  " . $prop . ";\n";
+					}
+				}
+			}
+		}
+
+		$cleanedCss = preg_replace( $rootRegex, '', $cssString );
+		$cleanedCss = trim( $cleanedCss );
+		$mergedRoot = ":root {\n{$mergedVariables}}";
+
+		return $mergedRoot . "\n\n" . $cleanedCss;
+	}
+}
+
+/**
  * Class Oxygen
  *
  * @package CoreFramework\App\Oxygen
@@ -74,6 +107,45 @@ class Functions extends Base {
 		 */
 		 \add_action( 'wp_enqueue_scripts', array( $this, 'add_corresponding_css' ), 9999, 12 );
 		 \add_action( 'ct_builder_ng_init', fn() => $this->elegant_custom_fonts(), 1000001);
+		 \add_action( 'wp_head', array( $this, 'add_font_label_styles' ), 1000001);
+	}
+
+	/**
+	 * Add CSS styles for Core Framework font labels in Oxygen builder
+	 *
+	 * @since 1.10.0
+	 */
+	public function add_font_label_styles(): void {
+		if ( ! defined( 'SHOW_CT_BUILDER' ) || defined( 'OXYGEN_IFRAME' ) ) {
+			return;
+		}
+
+		$helper = new Helper();
+		if ( $helper->isFontsDisabled() ) {
+			return;
+		}
+
+		$selector = '.oxygen-select-box-option.ng-binding.ng-scope[ng-repeat*="elegantCustomFonts"]';
+		$svg = 'data:image/svg+xml,' . rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31.82 24.84"><defs><linearGradient id="e" x1="3.77" y1="7.44" x2="31.03" y2="24.04" gradientTransform="translate(0 26) scale(1 -1)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#5c68f9"/><stop offset="1" stop-color="#8e97fe"/></linearGradient></defs><rect x="18.78" y="10.68" width="13.03" height="7.07" fill="#fa5e5e"/><path d="m12.42,0C5.56,0,0,5.56,0,12.42h0c0,6.86,5.56,12.42,12.42,12.42h6.37v-7.07h-6.37c-2.95,0-5.35-2.39-5.35-5.35h0c0-2.95,2.39-5.35,5.35-5.35h19.4V0H12.42Z" fill="#7d87fc"/><path d="m7.07,12.42h0c0-1.23.43-2.35,1.13-3.25h-.02L.74,16.6c1.72,4.79,6.3,8.23,11.68,8.23h6.37v-7.07h-6.37c-2.95,0-5.35-2.39-5.35-5.35h0Z" fill="#424ae1"/></svg>');
+		?>
+		<style>
+			<?php echo $selector; ?> {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+			}
+			<?php echo $selector; ?>::after {
+				content: "";
+				width: 15px;
+				height: 15px;
+				background-image: url('<?php echo $svg; ?>');
+				background-size: contain;
+				background-repeat: no-repeat;
+				margin-left: auto;
+				flex-shrink: 0;
+			}
+		</style>
+		<?php
 	}
 
 	/**
@@ -116,6 +188,11 @@ class Functions extends Base {
 
 	public function elegant_custom_fonts() {
 		$helper = new Helper();
+
+		if ( $helper->isFontsDisabled() ) {
+			return;
+		}
+
 		$preset = $helper->loadPreset();
 		$preset_fonts = isset( $preset['modulesData'] ) && isset( $preset['modulesData']['FONTS'] )
 			? $preset['modulesData']['FONTS']['fonts']
@@ -365,45 +442,26 @@ class Functions extends Base {
 	 * @return void
 	 */
 	public function add_corresponding_css() {
-  		$helper = new Helper();
-  		$preset = $helper->loadPreset();
-  		$preset_fonts = isset( $preset['modulesData'] ) && isset( $preset['modulesData']['FONTS'] )
-  			? $preset['modulesData']['FONTS']['fonts']
-  			: array();
-  		$css = '';
+		$helper = new Helper();
 
-  		function merge_root_selectors($cssString) {
-          $rootRegex = '/:root\s*\{\s*([^}]*)\s*\}/m';
-          $mergedVariables = '';
+		if ( $helper->isFontsDisabled() ) {
+			return;
+		}
 
-          if (preg_match_all($rootRegex, $cssString, $matches)) {
-              foreach ($matches[1] as $match) {
-                  $props = explode(';', $match);
+ 		$preset = $helper->loadPreset();
+ 		$preset_fonts = isset( $preset['modulesData'] ) && isset( $preset['modulesData']['FONTS'] )
+ 			? $preset['modulesData']['FONTS']['fonts']
+ 			: array();
+ 		$css = '';
 
-                  foreach ($props as $prop) {
-                      $prop = trim($prop);
-                      if (!empty($prop)) {
-                          $mergedVariables .= "  " . $prop . ";\n";
-                      }
-                  }
-              }
-          }
+ 		foreach ( $preset_fonts as $font ) {
+ 				$css .= $font['cssPreview'];
+ 		}
 
-          $cleanedCss = preg_replace($rootRegex, '', $cssString);
-          $cleanedCss = trim($cleanedCss);
-          $mergedRoot = ":root {\n{$mergedVariables}}";
-
-          return $mergedRoot . "\n\n" . $cleanedCss;
-      }
-
-  		foreach ( $preset_fonts as $font ) {
-  				$css .= $font['cssPreview'];
-  		}
-
-  		wp_register_style( 'core-framework-fonts-inline', false );
-  		wp_enqueue_style( 'core-framework-fonts-inline' );
-  		wp_add_inline_style( 'core-framework-fonts-inline', merge_root_selectors($css) );
-  	}
+ 		wp_register_style( 'core-framework-fonts-inline', false );
+ 		wp_enqueue_style( 'core-framework-fonts-inline' );
+ 		wp_add_inline_style( 'core-framework-fonts-inline', merge_root_selectors( $css ) );
+ 	}
 
 	/**
 	 * Enqueue styles in oxygen builder iframe

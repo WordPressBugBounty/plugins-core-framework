@@ -86,6 +86,9 @@ class AllPoints extends Base {
 			'figma'                                => array(
 				'type' => 'boolean',
 			),
+			'disable_fonts'                        => array(
+				'type' => 'boolean',
+			),
 			'selected_id'                          => array(
 				'type' => 'string',
 			),
@@ -730,14 +733,19 @@ class AllPoints extends Base {
   }
 
 	function get_core_fonts() {
-      $helper = new Helper();
-			$preset = $helper->loadPreset();
-			$preset_fonts = isset( $preset['modulesData'] ) && isset( $preset['modulesData']['FONTS'] )
-				? $preset['modulesData']['FONTS']['fonts']
-				: array();
+		$helper = new Helper();
 
-			return ['success' => true, 'fonts' => $preset_fonts];
-  }
+		if ( $helper->isFontsDisabled() ) {
+			return ['success' => true, 'fonts' => array()];
+		}
+
+		$preset = $helper->loadPreset();
+		$preset_fonts = isset( $preset['modulesData'] ) && isset( $preset['modulesData']['FONTS'] )
+			? $preset['modulesData']['FONTS']['fonts']
+			: array();
+
+		return ['success' => true, 'fonts' => $preset_fonts];
+	}
 
 	/**
 	 * Delete a row from the 'core_framework_presets' table

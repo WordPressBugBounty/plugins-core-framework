@@ -18,6 +18,39 @@ use CoreFramework\Common\Abstracts\Base;
 use CoreFramework\Helper;
 
 /**
+ * Merge multiple :root selectors into a single one
+ *
+ * @param string $cssString The CSS string containing multiple :root selectors
+ * @return string The CSS with merged :root selectors
+ * @since 1.10.0
+ */
+if ( ! function_exists( 'merge_root_selectors' ) ) {
+	function merge_root_selectors( $cssString ) {
+		$rootRegex = '/:root\s*\{\s*([^}]*)\s*\}/m';
+		$mergedVariables = '';
+
+		if ( preg_match_all( $rootRegex, $cssString, $matches ) ) {
+			foreach ( $matches[1] as $match ) {
+				$props = explode( ';', $match );
+
+				foreach ( $props as $prop ) {
+					$prop = trim( $prop );
+					if ( ! empty( $prop ) ) {
+						$mergedVariables .= "  " . $prop . ";\n";
+					}
+				}
+			}
+		}
+
+		$cleanedCss = preg_replace( $rootRegex, '', $cssString );
+		$cleanedCss = trim( $cleanedCss );
+		$mergedRoot = ":root {\n{$mergedVariables}}";
+
+		return $mergedRoot . "\n\n" . $cleanedCss;
+	}
+}
+
+/**
  * Class Bricks
  *
  * @package CoreFramework\App\Bricks
@@ -52,35 +85,16 @@ class Bricks extends Base {
 
 	public function add_corresponding_css() {
 		$helper = new Helper();
+
+		if ( $helper->isFontsDisabled() ) {
+			return;
+		}
+
 		$preset = $helper->loadPreset();
 		$preset_fonts = isset( $preset['modulesData'] ) && isset( $preset['modulesData']['FONTS'] )
 			? $preset['modulesData']['FONTS']['fonts']
 			: array();
 		$css = '';
-
-		function merge_root_selectors($cssString) {
-        $rootRegex = '/:root\s*\{\s*([^}]*)\s*\}/m';
-        $mergedVariables = '';
-
-        if (preg_match_all($rootRegex, $cssString, $matches)) {
-            foreach ($matches[1] as $match) {
-                $props = explode(';', $match);
-
-                foreach ($props as $prop) {
-                    $prop = trim($prop);
-                    if (!empty($prop)) {
-                        $mergedVariables .= "  " . $prop . ";\n";
-                    }
-                }
-            }
-        }
-
-        $cleanedCss = preg_replace($rootRegex, '', $cssString);
-        $cleanedCss = trim($cleanedCss);
-        $mergedRoot = ":root {\n{$mergedVariables}}";
-
-        return $mergedRoot . "\n\n" . $cleanedCss;
-    }
 
 		foreach ( $preset_fonts as $font ) {
 				$css .= $font['cssPreview'];
@@ -88,7 +102,7 @@ class Bricks extends Base {
 
 		wp_register_style( 'core-framework-inline', false );
 		wp_enqueue_style( 'core-framework-inline' );
-		wp_add_inline_style( 'core-framework-inline', merge_root_selectors($css) );
+		wp_add_inline_style( 'core-framework-inline', merge_root_selectors( $css ) );
 	}
 
 	/**

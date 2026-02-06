@@ -34,6 +34,17 @@ class Helper {
 		return $options['selected_id'] ?? null;
 	}
 
+	/**
+	 * Check if fonts integration is disabled in plugin preferences
+	 *
+	 * @return bool
+	 * @since 1.10.0
+	 */
+	public function isFontsDisabled(): bool {
+		$option = get_option( 'core_framework_main', array() );
+		return isset( $option['disable_fonts'] ) && $option['disable_fonts'];
+	}
+
 	public function setPresetId( string $preset_id ): void {
 		$options                = get_option( 'core_framework_main', array() );
 		$options['selected_id'] = $preset_id;

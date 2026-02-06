@@ -146,18 +146,18 @@ class Functions extends Base {
 			wp_register_style( $name, false );
 			wp_enqueue_style( $name );
 			wp_add_inline_style( $name, $prefixed_css );
+
+			$helper  = new Helper();
+			$version = $helper->getStylesheetVersion();
+
+			\wp_enqueue_style(
+				'core-framework-gutenberg',
+				plugins_url( 'gutenberg/index.css', CORE_FRAMEWORK_ABSOLUTE ),
+				array(),
+				$version,
+				'all'
+			);
 		}
-
-		$helper  = new Helper();
-		$version = $helper->getStylesheetVersion();
-
-		\wp_enqueue_style(
-			'core-framework-gutenberg',
-			plugins_url( 'gutenberg/index.css', CORE_FRAMEWORK_ABSOLUTE ),
-			array(),
-			$version,
-			'all'
-		);
 
 		\add_theme_support( 'editor-styles' );
 	}
