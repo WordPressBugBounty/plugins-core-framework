@@ -229,7 +229,7 @@ class Functions extends Base {
 		$core_framework_ids = array();
 
 		foreach ( $bricks_classes as $class ) {
-			if ( ! str_ends_with( $class['id'], self::CORE_SUFFIX ) ) {
+			if ( str_ends_with( $class['id'], self::CORE_SUFFIX ) ) {
 				$core_framework_ids[] = $class['id'];
 			}
 		}
@@ -239,7 +239,7 @@ class Functions extends Base {
 		}
 
 		if ( is_array( $bricks_locked_classes ) && ! empty( $bricks_locked_classes ) ) {
-			$bricks_locked_classes = array_filter( $bricks_locked_classes, fn( $class ): bool => in_array( $class, $core_framework_ids ) );
+			$bricks_locked_classes = array_filter( $bricks_locked_classes, fn( $class ): bool => ! in_array( $class, $core_framework_ids ) );
 		}
 
 		update_option( self::BRICKS_CLASSES_OPTION, array_values( $bricks_classes ), false );
@@ -321,10 +321,22 @@ class Functions extends Base {
 				continue;
 			}
 
+			$name = sanitize_text_field( $new_color['name'] ?? '' );
+			$id   = $new_color['id'] ?? '';
+			$raw  = $new_color['raw'] ?? '';
+
+			if ( ! preg_match( '/^[a-zA-Z0-9_-]+$/', $id ) ) {
+				continue;
+			}
+
+			if ( ! preg_match( '/^(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\)|var\(--[^)]+\))$/', $raw ) ) {
+				continue;
+			}
+
 			$core_palette[0]['colors'][] = array(
-				'raw'  => $new_color['raw'],
-				'id'   => $new_color['id'],
-				'name' => $new_color['name'],
+				'raw'  => $raw,
+				'id'   => $id,
+				'name' => $name,
 			);
 		}
 
@@ -359,6 +371,10 @@ class Functions extends Base {
 	}
 
 	public function add_to_bricks_categories() {
+		if ( get_transient( 'cf_bricks_categories_added' ) ) {
+			return;
+		}
+
 		$current_value_classes = get_option( self::BRICKS_CLASSES_CATEGORY );
 
 		if ( ! is_array( $current_value_classes ) ) {
@@ -406,5 +422,7 @@ class Functions extends Base {
 			$current_value_variables[] = $new_element_variable;
 			update_option( self::BRICKS_VARIABLES_CATEGORY, $current_value_variables, false );
 		}
+
+		set_transient( 'cf_bricks_categories_added', true );
 	}
 }

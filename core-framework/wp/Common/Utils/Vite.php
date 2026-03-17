@@ -128,7 +128,7 @@ class Vite {
 	// ? Helpers to locate files
 
 	private static function getManifest(): array {
-		$fName = 'manifest.json';
+		$fName = '.vite/manifest.json';
 		$fPath = CORE_FRAMEWORK_DIR_ROOT . 'dist/' . $fName;
 		if ( file_exists( $fPath ) ) {
 			$content = file_get_contents( $fPath );

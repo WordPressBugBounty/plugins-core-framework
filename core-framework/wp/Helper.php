@@ -1045,6 +1045,16 @@ class Helper {
 			}
 		}
 
+		// Add screen width preference variables
+		if ( isset( $preset['preferences'] ) ) {
+			if ( isset( $preset['preferences']['min_screen_width'] ) && $preset['preferences']['min_screen_width'] ) {
+				$grouped_variables['layoutsStyles'][] = 'min-screen-width';
+			}
+			if ( isset( $preset['preferences']['max_screen_width'] ) && $preset['preferences']['max_screen_width'] ) {
+				$grouped_variables['layoutsStyles'][] = 'max-screen-width';
+			}
+		}
+
 		foreach ( array_keys( $grouped_variables ) as $key ) {
 			$grouped_variables[ $key ] = array_unique( $grouped_variables[ $key ] );
 		}
@@ -1298,6 +1308,17 @@ class Helper {
 						}
 					}
 				}
+			}
+		}
+
+		// Add screen width preference variables
+		if ( isset( $preset['preferences'] ) ) {
+			$preferences_group_name = 'Preferences';
+			if ( isset( $preset['preferences']['min_screen_width'] ) && $preset['preferences']['min_screen_width'] ) {
+				$grouped_variables['layoutsStyles'][ $preferences_group_name ][] = 'min-screen-width';
+			}
+			if ( isset( $preset['preferences']['max_screen_width'] ) && $preset['preferences']['max_screen_width'] ) {
+				$grouped_variables['layoutsStyles'][ $preferences_group_name ][] = 'max-screen-width';
 			}
 		}
 

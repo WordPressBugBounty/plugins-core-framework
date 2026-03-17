@@ -199,8 +199,10 @@ class Functions extends Base {
 			: array();
 		$customCoreFontFamilies = array_column($preset_fonts, 'family');
 
-		$output = \json_encode($customCoreFontFamilies, \JSON_THROW_ON_ERROR);
-		$output = \htmlspecialchars($output, \ENT_QUOTES);
+		$output = \wp_json_encode($customCoreFontFamilies);
+		if ( $output === false ) {
+			$output = '[]';
+		}
 		echo \sprintf('elegantCustomFonts=%s;', $output);
 	}
 
@@ -229,13 +231,28 @@ class Functions extends Base {
 	}
 
 	/**
+	 * Check if Oxygen 6.0 or higher is activated
+	 *
+	 * @since 1.10.0
+	 */
+	public function is_oxygen6(): bool {
+		include_once ABSPATH . 'wp-admin/includes/plugin.php';
+		if ( file_exists( WP_PLUGIN_DIR . '/oxygen/plugin.php' ) && is_plugin_active( 'oxygen/plugin.php' ) ) {
+			$plugin_data = get_plugin_data( WP_PLUGIN_DIR . '/oxygen/plugin.php' );
+			return version_compare( $plugin_data['Version'], '6.0', '>=' );
+		}
+		return false;
+	}
+
+	/**
 	 * Check if oxygen is activated
 	 *
 	 * @since 0.0.0
 	 */
 	public function is_oxygen(): bool {
 		include_once ABSPATH . 'wp-admin/includes/plugin.php';
-		return is_plugin_active( 'oxygen/functions.php' ) || ( isset( $_GET['ct_builder'] ) && 'true' === $_GET['ct_builder'] ) || class_exists( 'CT_Component' );
+		return ( is_plugin_active( 'oxygen/functions.php' ) || ( isset( $_GET['ct_builder'] )
+			&& 'true' === $_GET['ct_builder'] ) || class_exists( 'CT_Component' ) ) || $this->is_oxygen6();
 	}
 
 	/**
@@ -301,7 +318,7 @@ class Functions extends Base {
 		$this->add_color_folder_name();
 
 		$oxygen_colors = get_option( self::OXYGEN_COLOR_PALETTES_OPTION, array() );
-		$oxygen_sets   = $oxygen_colors['sets'] ?: array();
+		$oxygen_sets   = $oxygen_colors['sets'] ?? array();
 		$core_set_id   = null;
 
 		foreach ( $oxygen_sets as $oxygen_set ) {
@@ -314,7 +331,7 @@ class Functions extends Base {
 			return;
 		}
 
-		$colors = $oxygen_colors['colors'] ?: array();
+		$colors = $oxygen_colors['colors'] ?? array();
 		$colors = array_filter( $colors, fn ( $color ): bool => $color['set'] !== $core_set_id );
 
 		foreach ( $new_colors as $new_color ) {
@@ -353,7 +370,7 @@ class Functions extends Base {
 			);
 		}
 
-		$oxygen_sets = $oxygen_colors['sets'] ?: array();
+		$oxygen_sets = $oxygen_colors['sets'] ?? array();
 
 		$existing_set = CoreFramework()->array_some( $oxygen_sets, fn ( $set ): bool => $set['name'] === self::CORE_FOLDER );
 
@@ -384,7 +401,7 @@ class Functions extends Base {
 		}
 
 		$oxygen_sets   = $oxygen_global_colors['sets'] ?: array();
-		$oxygen_colors = $oxygen_global_colors['colors'] ?: array();
+		$oxygen_colors = $oxygen_global_colors['colors'] ?? array();
 
 		if ( empty( $oxygen_sets ) || empty( $oxygen_colors ) ) {
 			return false;
@@ -473,7 +490,7 @@ class Functions extends Base {
 		$version = $helper->getStylesheetVersion();
 		$url     = $helper->getStylesheetUrl();
 
-		echo '<link rel="stylesheet" id="core-framework-frontend-css" href="' . $url . '?ver=' . esc_attr( $version ) . '" type="text/css" media="all">';
+		echo '<link rel="stylesheet" id="core-framework-frontend-css" href="' . esc_url( $url ) . '?ver=' . esc_attr( $version ) . '" type="text/css" media="all">';
 	}
 
 	/**
@@ -484,15 +501,30 @@ class Functions extends Base {
 	public function enqueue_helper() {
 		CoreFramework()->enqueue_core_framework_connector();
 
-		if (class_exists('Yabe\Webfont\Utils\Font')) {
-        $yabe_fonts = \json_encode(\array_column(Font::get_fonts(), 'family'), \JSON_THROW_ON_ERROR);
-        $js = 'window.core_yabe_fonts = ' . $yabe_fonts . ';';
-        $name = 'core-framework-fonts';
+		if ( class_exists( 'Yabe\Webfont\Utils\Font' ) ) {
+			$yabe_fonts = \wp_json_encode( \array_column( Font::get_fonts(), 'family' ) ) ?: '[]';
+			$js = 'window.core_yabe_fonts = ' . $yabe_fonts . ';';
+			$name = 'core-framework-fonts';
 
-        \wp_register_script( $name, '', array(), strval( time() ) );
-        \wp_enqueue_script( $name );
-        \wp_add_inline_script( $name, $js, 'before' );
-    }
+			\wp_register_script( $name, '', array(), strval( time() ) );
+			\wp_enqueue_script( $name );
+			\wp_add_inline_script( $name, $js, 'before' );
+		}
+
+		$helper    = new Helper();
+		$variables = $helper->getVariables(
+			array(
+				'group_by_category' => true,
+			)
+		);
+		$core_colors = get_option( 'core_framework_colors', array() );
+		$js = 'window.parent.core_colors = ' . ( \wp_json_encode( $core_colors ) ?: '[]' ) . ';';
+		$js .= 'window.parent.core_variables = ' . ( \wp_json_encode( $variables ) ?: '{}' ) . ';';
+		$colors_script_name = 'core-framework-colors';
+
+		\wp_register_script( $colors_script_name, '', array(), strval( time() ) );
+		\wp_enqueue_script( $colors_script_name );
+		\wp_add_inline_script( $colors_script_name, $js, 'before' );
 
 		$name       = 'core_framework_oxygen_css_helper';
 		$css_string = get_option(
@@ -508,14 +540,28 @@ class Functions extends Base {
 		);
 
 		$script_name = 'core_framework_oxygen_js_helper';
+		$oxy_script_file = $this->is_oxygen6() ? 'oxygen6_builder.js' : 'oxygen_builder.js';
+
 		\wp_register_script(
 			$script_name,
-			\plugins_url( '/assets/public/js/oxygen_builder.js', CORE_FRAMEWORK_ABSOLUTE ),
+			\plugins_url( '/assets/public/js/' . $oxy_script_file, CORE_FRAMEWORK_ABSOLUTE ),
 			array(),
-			\filemtime( plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . '/assets/public/js/oxygen_builder.js' ),
+			\filemtime( plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . '/assets/public/js/' . $oxy_script_file ),
 			true,
 		);
 		\wp_enqueue_script( $script_name );
+
+		if ( $this->is_oxygen6() ) {
+			// Inject REST API credentials for Oxygen 6 builder
+			$coreframework_config = array(
+				'nonce'        => \wp_create_nonce( 'wp_rest' ),
+				'rest_url'     => \get_rest_url(),
+				'core_api_url' => \get_rest_url( null, 'core-framework/v2/' ),
+			);
+			$coreframework_js = 'window.coreframework = ' . \wp_json_encode( $coreframework_config ) . ';';
+			\wp_add_inline_script( $script_name, $coreframework_js, 'before' );
+
+		}
 
 		\wp_register_style(
 			'core_framework_oxygen_css_builder',
@@ -524,14 +570,6 @@ class Functions extends Base {
 			\filemtime( plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . 'assets/public/css/oxygen_builder.css' ),
 		);
 		\wp_enqueue_style( 'core_framework_oxygen_css_builder' );
-
-		\wp_register_style(
-			'core_framework_oxygen_variable_ui',
-			\plugins_url( '/assets/public/css/variable_ui.css', CORE_FRAMEWORK_ABSOLUTE ),
-			array(),
-			\filemtime( plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . 'assets/public/css/variable_ui.css' ),
-		);
-		\wp_enqueue_style( 'core_framework_oxygen_variable_ui' );
 	}
 
 	/**

@@ -334,7 +334,17 @@ class CoreFrameworkThemeToggle extends \Bricks\Element {
 
 		echo wp_kses(
 			'<button ' . $this->render_attributes( '_root' ) . '>',
-			'post'
+			array_merge(
+				$wp_kses_options,
+				array(
+					'button' => array(
+						'class'      => true,
+						'aria-label' => true,
+						'type'       => true,
+						'id'         => true,
+					),
+				)
+			)
 		);
 		echo wp_kses(
 			$light_mode_icon,

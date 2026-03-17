@@ -58,7 +58,7 @@ class ThemeToggle extends OxyEl {
 </button>
 		<?php
 
-		$js = file_get_contents( plugins_url( '/assets/public/js/core_framework_theme.js', CORE_FRAMEWORK_ABSOLUTE ) );
+		$js = file_get_contents( plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . 'assets/public/js/core_framework_theme.js' );
 		$js = preg_replace( '/\s+/', ' ', $js );
 
 		$this->El->inlineJS( $js );
@@ -85,7 +85,7 @@ class ThemeToggle extends OxyEl {
 					'name'         => __( 'Icon color for light mode', 'core-framework' ),
 					'property'     => 'color',
 					'selector'     => '.cf-light-mode-icon',
-					'default'      => '#fffffff',
+					'default'      => '#ffffff',
 				),
 			)
 		);

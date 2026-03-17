@@ -221,8 +221,10 @@ class AllPoints extends Base {
 		$readonly_routes = array(
 			'/get-builders',
 			'/get-classes',
+			'/get-colors',
 			'/get-variables',
 			'/builders-var-ui',
+			'/get-bricks-sync-data',
 		);
 
 		foreach ( $readonly_routes as $key => $value ) {
@@ -251,10 +253,7 @@ class AllPoints extends Base {
 			return false;
 		}
 
-		$target_checksum = substr( $target_key, 0, 24 );
-		$key_checksum    = substr( $key, 0, 24 );
-
-		if ( $key_checksum !== $target_checksum ) {
+		if ( ! hash_equals( $target_key, $key ) ) {
 			return false;
 		}
 
@@ -410,6 +409,18 @@ class AllPoints extends Base {
 				'permission_callback' => array( $this, 'verify_nonce' ),
 			)
 		);
+
+		register_rest_route( CORE_FRAMEWORK_NAME . '/v2', '/get-colors', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'get_colors' ),
+			'permission_callback' => array( $this, 'verify_nonce' ),
+		) );
+
+		register_rest_route( CORE_FRAMEWORK_NAME . '/v2', '/get-bricks-sync-data', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'get_bricks_sync_data' ),
+			'permission_callback' => array( $this, 'verify_nonce' ),
+		) );
 
 		// THIS
 		register_rest_route(
@@ -598,9 +609,8 @@ class AllPoints extends Base {
 				array( 'id' => $id )
 			);
 
-			if ( \is_wp_error( $wpdb->insert_id ) ) {
-				http_response_code( 400 );
-				exit();
+			if ( $wpdb->last_error ) {
+				return new \WP_REST_Response( array( 'message' => 'Database error' ), 400 );
 			}
 
 			CoreFramework()->purge_cache();
@@ -622,9 +632,8 @@ class AllPoints extends Base {
 			)
 		);
 
-		if ( \is_wp_error( $wpdb->insert_id ) ) {
-			http_response_code( 400 );
-			exit();
+		if ( $wpdb->last_error ) {
+			return new \WP_REST_Response( array( 'message' => 'Database error' ), 400 );
 		}
 
 		CoreFramework()->purge_cache();
@@ -656,9 +665,17 @@ class AllPoints extends Base {
 		$saved_files = [];
 		$errors = [];
 
+		$allowed_extensions = ['woff', 'woff2', 'ttf', 'otf', 'eot'];
+
 		foreach ($fonts as $font) {
+			$filename = basename($font['filename']);
+			$ext      = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+			if (!in_array($ext, $allowed_extensions, true)) {
+				return new \WP_Error('invalid_file', 'Invalid font file type', ['status' => 400]);
+			}
+
 			$font_content = base64_decode($font['font_base64']);
-			$filename = $font['filename'];
 			$file_path = $upload_dir . $filename;
 
 			if (file_put_contents($file_path, $font_content) === false) {
@@ -831,12 +848,19 @@ class AllPoints extends Base {
 
 		\update_option( $option_name, $settings, false );
 
-		$plugins_root = WP_CONTENT_DIR . '/plugins';
+		$forbidden_css = ['<script', 'expression(', 'javascript:', '@import url("http'];
+		foreach ( $forbidden_css as $pattern ) {
+			if ( stripos( $cssString, $pattern ) !== false ) {
+				return new \WP_REST_Response( array( 'message' => 'Invalid CSS content' ), 400 );
+			}
+		}
+
+		$plugin_root = plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE );
 
 		if ( is_multisite() ) {
-			$bytes_saved = \file_put_contents( $plugins_root . '/core-framework/assets/public/css/core_framework_' . get_current_blog_id() . '.css', $cssString );
+			$bytes_saved = \file_put_contents( $plugin_root . 'assets/public/css/core_framework_' . get_current_blog_id() . '.css', $cssString );
 		} else {
-			$bytes_saved = \file_put_contents( $plugins_root . '/core-framework/assets/public/css/core_framework.css', $cssString );
+			$bytes_saved = \file_put_contents( $plugin_root . 'assets/public/css/core_framework.css', $cssString );
 		}
 
 		if ( \is_wp_error( $settings ) ) {
@@ -867,14 +891,14 @@ class AllPoints extends Base {
 		$classes            = $request->get_param( 'classes' ) ?? '';
 		$addon_enable_array = $request->get_param( 'addonEnableArray' ) ?? array();
 
-		function is_addon_enabled( $addon_enable_array, $addon ) {
+		$is_addon_enabled = function( $addon_enable_array, $addon ) {
 			foreach ( $addon_enable_array as $addon_enable ) {
 				if ( $addon_enable['addon'] === $addon ) {
 					return $addon_enable['enabled'];
 				}
 			}
 			return false;
-		}
+		};
 
 		if ( $classes === null || $addon_enable_array === null ) {
 			http_response_code( 400 );
@@ -887,13 +911,13 @@ class AllPoints extends Base {
 				'is_active'     => CoreFrameworkOxygen()->is_oxygen(),
 				'class'         => CoreFrameworkOxygen(),
 				'key'           => 'oxygen',
-				'addon_license' => is_addon_enabled( $addon_enable_array, 'oxygen' ),
+				'addon_license' => $is_addon_enabled( $addon_enable_array, 'oxygen' ),
 			),
 			'bricks' => array(
 				'is_active'     => CoreFrameworkBricks()->is_bricks(),
 				'class'         => CoreFrameworkBricks(),
 				'key'           => 'bricks',
-				'addon_license' => is_addon_enabled( $addon_enable_array, 'bricks' ),
+				'addon_license' => $is_addon_enabled( $addon_enable_array, 'bricks' ),
 			),
 		);
 
@@ -969,14 +993,14 @@ class AllPoints extends Base {
 		$colors             = $request->get_param( 'colors' ) ?? '';
 		$addon_enable_array = $request->get_param( 'addonEnableArray' ) ?? array();
 
-		function is_addon_enabled( $addon_enable_array, $addon ) {
+		$is_addon_enabled = function( $addon_enable_array, $addon ) {
 			foreach ( $addon_enable_array as $addon_enable ) {
 				if ( $addon_enable['addon'] === $addon ) {
 					return $addon_enable['enabled'];
 				}
 			}
 			return false;
-		}
+		};
 
 		if ( $colors === null ) {
 			http_response_code( 400 );
@@ -990,13 +1014,13 @@ class AllPoints extends Base {
 				'is_active'     => CoreFrameworkOxygen()->is_oxygen(),
 				'class'         => CoreFrameworkOxygen(),
 				'key'           => 'oxygen',
-				'addon_license' => is_addon_enabled( $addon_enable_array, 'oxygen' ),
+				'addon_license' => $is_addon_enabled( $addon_enable_array, 'oxygen' ),
 			),
 			'bricks' => array(
 				'is_active'     => CoreFrameworkBricks()->is_bricks(),
 				'class'         => CoreFrameworkBricks(),
 				'key'           => 'bricks',
-				'addon_license' => is_addon_enabled( $addon_enable_array, 'bricks' ),
+				'addon_license' => $is_addon_enabled( $addon_enable_array, 'bricks' ),
 			),
 		);
 
@@ -1052,7 +1076,8 @@ class AllPoints extends Base {
 
 		return new \WP_REST_Response(
 			array(
-				'builders' => $builders,
+				'builders'  => $builders,
+				'isOxygen6' => CoreFrameworkOxygen()->is_oxygen6(),
 			)
 		);
 	}
@@ -1095,6 +1120,11 @@ class AllPoints extends Base {
 			exit();
 		}
 
+		$allowed_types = ['oxygen', 'bricks', 'figma'];
+		if (!in_array($type, $allowed_types, true)) {
+			return new \WP_REST_Response(['message' => 'Invalid license type'], 400);
+		}
+
 		update_option( 'core_framework_' . $type . '_license_key', $license_key, false );
 
 		CoreFramework()->purge_cache();
@@ -1111,12 +1141,50 @@ class AllPoints extends Base {
 	 *
 	 * @since 1.0.0
 	 */
-	public function get_classes() {
-		$classes = get_option( 'core_framework_grouped_classes' );
+	public function get_classes( \WP_REST_Request $request ) {
+		$type = $request->get_param( 'type' ) ?? '';
+		$classes = '';
+
+		if ( $type === 'oxy' ) {
+			$classes = get_option( 'ct_components_classes' );
+		} else {
+			$classes = get_option( 'core_framework_grouped_classes' );
+		}
 
 		return new \WP_REST_Response(
 			array(
-				'classes' => $classes,
+				'classes' => $classes
+			)
+		);
+	}
+
+	/**
+	 * Get colors
+	 *
+	 * @since 1.0.0
+	 */
+	public function get_colors() {
+		$colors = get_option( 'core_framework_colors', array() );
+		return new \WP_REST_Response( array( 'colors' => $colors ) );
+	}
+
+	/**
+	 * Get Bricks sync data (global classes, color palette, variables)
+	 *
+	 * @since 1.5.0
+	 */
+	public function get_bricks_sync_data() {
+		$classes              = get_option( 'bricks_global_classes', array() );
+		$colors               = get_option( 'bricks_color_palette', array() );
+		$variables            = get_option( 'bricks_global_variables', array() );
+		$variables_categories = get_option( 'bricks_global_variables_categories', array() );
+
+		return new \WP_REST_Response(
+			array(
+				'globalClasses'             => $classes,
+				'colorPalette'              => $colors,
+				'globalVariables'           => $variables,
+				'globalVariablesCategories' => $variables_categories,
 			)
 		);
 	}
@@ -1242,7 +1310,15 @@ class AllPoints extends Base {
 			);
 		}
 
-		$response = wp_remote_get( CORE_FRAMEWORK_EDD_STORE_URL . '?edd_action=check_license&item_id=' . ( $is_bricks ? '12' : '15' ) . '&license=' . $key . '&url=' . get_site_url() . '&version=' . CORE_FRAMEWORK_VERSION );
+		$response = wp_remote_post( CORE_FRAMEWORK_EDD_STORE_URL, array(
+		'body' => array(
+			'edd_action' => 'check_license',
+			'item_id'    => $is_bricks ? '12' : '15',
+			'license'    => $key,
+			'url'        => get_site_url(),
+			'version'    => CORE_FRAMEWORK_VERSION,
+		),
+	) );
 		$res_json = json_decode( wp_remote_retrieve_body( $response ), true );
 
 		if ( isset( $res_json['license'] ) && $res_json['success'] === false ) {
@@ -1467,12 +1543,19 @@ class AllPoints extends Base {
 			exit();
 		}
 
-		$plugins_root = WP_CONTENT_DIR . '/plugins';
+		$forbidden_css = ['<script', 'expression(', 'javascript:', '@import url("http'];
+		foreach ( $forbidden_css as $pattern ) {
+			if ( stripos( $css, $pattern ) !== false ) {
+				return new \WP_REST_Response( array( 'message' => 'Invalid CSS content' ), 400 );
+			}
+		}
+
+		$plugin_root = plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE );
 
 		if ( is_multisite() ) {
-			$bytes_saved = \file_put_contents( $plugins_root . '/core-framework/assets/public/css/core_framework_' . get_current_blog_id() . '.css', $css );
+			$bytes_saved = \file_put_contents( $plugin_root . 'assets/public/css/core_framework_' . get_current_blog_id() . '.css', $css );
 		} else {
-			$bytes_saved = \file_put_contents( $plugins_root . '/core-framework/assets/public/css/core_framework.css', $css );
+			$bytes_saved = \file_put_contents( $plugin_root . 'assets/public/css/core_framework.css', $css );
 		}
 
 		\update_option( 'core_framework_selected_preset_backup', $css, false );

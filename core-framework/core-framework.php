@@ -10,14 +10,14 @@
  * Plugin Name:     Core Framework
  * Plugin URI:      https://coreframework.com
  * Description:     The CORE of your website
- * Version:         1.9.3
+ * Version:         1.10.0
  * Author:          Core Framework
  * Author URI:      https://coreframework.com
  * Text Domain:     core-framework
  * Domain Path:     /languages
  * License:         GPLv2
  * License URI:     https://coreframework.com/eula + https://www.gnu.org/licenses/gpl-2.0.html
- * Requires PHP:    7.4
+ * Requires PHP:    8.0
  * Requires WP:     6.0
  * Namespace:       CoreFramework
  */
@@ -40,7 +40,7 @@ define( 'CORE_FRAMEWORK_DIR_URL', plugin_dir_url( __FILE__ ) );
 define( 'CORE_FRAMEWORK_NAME', dirname( CORE_FRAMEWORK_MAIN_FILE ) );
 
 define( 'CORE_FRAMEWORK_DB_VER', '1.3' );
-define( 'CORE_FRAMEWORK_VERSION', '1.9.3' );
+define( 'CORE_FRAMEWORK_VERSION', '1.10.0' );
 
 define( 'CORE_FRAMEWORK_EDD_STORE_URL', 'https://edd.coreframework.com' );
 define( 'CORE_FRAMEWORK_FREE_ITEM_ID', 40 );
@@ -60,6 +60,17 @@ if ( ! wp_installing() ) {
 if ( ! class_exists( '\\' . Scaffold::class ) ) {
 	wp_die( __( 'Core Framework is unable to find the Scaffold class.', 'core-framework' ) );
 }
+
+/**
+ * Declare compatibility with WooCommerce features.
+ * Core Framework doesn't interact with WooCommerce, so it's fully compatible.
+ */
+add_action( 'before_woocommerce_init', function () {
+	if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', __FILE__, true );
+	}
+} );
 
 add_action(
 	'plugins_loaded',

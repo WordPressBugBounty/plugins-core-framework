@@ -2,9 +2,9 @@
 Contributors: coreframework
 Tags: css, framework, stylesheet, bricks, oxygen
 Requires at least: 6.0
-Requires PHP: 7.4
+Requires PHP: 8.0
 Tested up to: 6.8.3
-Stable tag: 1.9.3
+Stable tag: 1.10.0
 License: GPLv2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 

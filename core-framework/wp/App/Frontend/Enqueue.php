@@ -72,13 +72,24 @@ class Enqueue extends Base {
 		}
 
 		if ( CoreFrameworkOxygen()->is_oxygen() ) {
-			add_action( 'wp_head', array( $this, 'enqueue_styles_oxygen' ), 1_000_000 );
+			// For Oxygen 6, load CSS in wp_footer to ensure it loads AFTER oxy-selectors.css
+			// This prevents Oxygen's empty variable definitions from overriding Core Framework values
+			if ( CoreFrameworkOxygen()->is_oxygen6() ) {
+				// Enqueue scripts at the proper time
+				add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_oxygen6_scripts' ), 999 );
+				// Enqueue styles in footer
+				add_action( 'wp_footer', array( $this, 'enqueue_styles_oxygen' ), 1 );
+			} else {
+				add_action( 'wp_head', array( $this, 'enqueue_styles_oxygen' ), 1_000_000 );
+			}
 
 			$license          = get_option( 'core_framework_oxygen_license_key', false );
 			$enable           = isset( $option['oxygen'] ) && $option['oxygen'] && $license;
+			// Check for both old Oxygen iframe param and Oxygen 6 (Breakdance-based) iframe param
 			$in_oxygen_iframe = sanitize_text_field( filter_input( INPUT_GET, 'oxygen_iframe', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) );
+			$in_breakdance_iframe = sanitize_text_field( filter_input( INPUT_GET, 'breakdance_iframe', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) );
 
-			if ( $in_oxygen_iframe && $enable ) {
+			if ( ( $in_oxygen_iframe || $in_breakdance_iframe ) && $enable ) {
 				add_action( 'wp_body_open', array( $this, 'enqueue_styles_oxygen_iframe' ), 1_000_000 );
 			}
 
@@ -212,22 +223,54 @@ class Enqueue extends Base {
 		$option            = get_option( 'core_framework_main', array() );
 		$license           = get_option( 'core_framework_oxygen_license_key', false );
 		$enable            = isset( $option['oxygen'] ) && $option['oxygen'] && $license;
+
+		// Check for old Oxygen iframe param
 		$in_oxygen_iframe  = sanitize_text_field( filter_input( INPUT_GET, 'oxygen_iframe', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) );
+
+		// Check for Oxygen 6 (Breakdance-based) iframe param
+		$in_breakdance_iframe = sanitize_text_field( filter_input( INPUT_GET, 'breakdance_iframe', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) );
+
 		$in_oxygen_builder = false;
 
+		// Old Oxygen builder detection
 		if ( sanitize_text_field( filter_input( INPUT_GET, 'ct_builder', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) ) ) {
 			if ( ! defined( 'OXYGEN_IFRAME' ) ) {
 				$in_oxygen_builder = true;
 			}
 		}
 
-		if ( ! $in_oxygen_builder && ! $in_oxygen_iframe ) {
+		// Oxygen 6 builder detection - when in breakdance_iframe, we're in the builder
+		$in_oxygen6_builder = $in_breakdance_iframe && CoreFrameworkOxygen()->is_oxygen6();
+
+		if ( ! $in_oxygen_builder && ! $in_oxygen_iframe && ! $in_oxygen6_builder ) {
 			if ( $this->determine_load() ) {
 				CoreFrameworkOxygen()->enqueue();
 			}
 		}
 
-		if ( $in_oxygen_builder && $enable ) {
+		// Load helper scripts for builder context
+		if ( ( $in_oxygen_builder || $in_oxygen6_builder ) && $enable ) {
+			CoreFrameworkOxygen()->enqueue_helper();
+		}
+	}
+
+	/**
+	 * Enqueue helper scripts for Oxygen 6 builder
+	 * Called on wp_enqueue_scripts hook to ensure proper timing
+	 *
+	 * @return void
+	 */
+	public function enqueue_oxygen6_scripts(): void {
+		$option  = get_option( 'core_framework_main', array() );
+		$license = get_option( 'core_framework_oxygen_license_key', false );
+		$enable  = isset( $option['oxygen'] ) && $option['oxygen'] && ! empty( $license );
+
+		// Check if we're in the Oxygen 6 builder context
+		$in_breakdance_iframe = sanitize_text_field( filter_input( INPUT_GET, 'breakdance_iframe', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) );
+		$in_oxygen6_builder   = $in_breakdance_iframe && CoreFrameworkOxygen()->is_oxygen6();
+
+		// Load helper scripts for builder context
+		if ( $in_oxygen6_builder && $enable ) {
 			CoreFrameworkOxygen()->enqueue_helper();
 		}
 	}
@@ -255,6 +298,7 @@ class Enqueue extends Base {
 
 		if ( CoreFrameworkOxygen()->is_oxygen() ) {
 			$in_oxygen_iframe  = sanitize_text_field( filter_input( INPUT_GET, 'oxygen_iframe', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) );
+			$in_breakdance_iframe = sanitize_text_field( filter_input( INPUT_GET, 'breakdance_iframe', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) );
 			$in_oxygen_builder = false;
 
 			if ( sanitize_text_field( filter_input( INPUT_GET, 'ct_builder', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) ) ) {
@@ -263,7 +307,8 @@ class Enqueue extends Base {
 				}
 			}
 
-			if ( $in_oxygen_iframe || $in_oxygen_builder ) {
+			// Don't add theme helper in builder contexts
+			if ( $in_oxygen_iframe || $in_oxygen_builder || $in_breakdance_iframe ) {
 				return;
 			}
 		}
