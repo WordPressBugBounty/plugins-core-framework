@@ -203,6 +203,7 @@ class Functions extends Base {
 		if ( $output === false ) {
 			$output = '[]';
 		}
+		$output = \htmlspecialchars($output, \ENT_QUOTES);
 		echo \sprintf('elegantCustomFonts=%s;', $output);
 	}
 
@@ -570,6 +571,14 @@ class Functions extends Base {
 			\filemtime( plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . 'assets/public/css/oxygen_builder.css' ),
 		);
 		\wp_enqueue_style( 'core_framework_oxygen_css_builder' );
+
+		\wp_register_style(
+			'core_framework_oxygen_variable_ui',
+			\plugins_url( '/assets/public/css/variable_ui.css', CORE_FRAMEWORK_ABSOLUTE ),
+			array(),
+			\filemtime( plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . 'assets/public/css/variable_ui.css' ),
+		);
+		\wp_enqueue_style( 'core_framework_oxygen_variable_ui' );
 	}
 
 	/**
