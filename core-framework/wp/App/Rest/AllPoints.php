@@ -253,7 +253,13 @@ class AllPoints extends Base {
 			return false;
 		}
 
-		if ( ! hash_equals( $target_key, $key ) ) {
+		// The API key is composed of a 24-char random password + URL-encoded site URL.
+		// When passed as a query parameter, PHP auto-decodes the URL portion, so the
+		// full strings won't match. Compare only the 24-char password portion.
+		$target_checksum = substr( $target_key, 0, 24 );
+		$key_checksum    = substr( $key, 0, 24 );
+
+		if ( ! hash_equals( $target_checksum, $key_checksum ) ) {
 			return false;
 		}
 

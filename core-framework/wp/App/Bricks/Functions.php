@@ -321,11 +321,12 @@ class Functions extends Base {
 				continue;
 			}
 
-			$name = sanitize_text_field( $new_color['name'] ?? '' );
-			$id   = $new_color['id'] ?? '';
-			$raw  = $new_color['raw'] ?? '';
+			$name  = sanitize_text_field( $new_color['name'] ?? '' );
+			$id    = $new_color['id'] ?? '';
+			$raw   = $new_color['raw'] ?? '';
+			$value = $new_color['value'] ?? '';
 
-			if ( ! preg_match( '/^[a-zA-Z0-9_-]+$/', $id ) ) {
+			if ( ! preg_match( '/^[a-zA-Z0-9._-]+$/', $id ) ) {
 				continue;
 			}
 
@@ -333,11 +334,23 @@ class Functions extends Base {
 				continue;
 			}
 
-			$core_palette[0]['colors'][] = array(
+			$color_entry = array(
 				'raw'  => $raw,
 				'id'   => $id,
 				'name' => $name,
 			);
+
+			if ( ! empty( $value ) ) {
+				if ( preg_match( '/^#[0-9a-fA-F]{3,8}$/', $value ) ) {
+					$color_entry['hex'] = $value;
+				} elseif ( preg_match( '/^rgba?\([^)]+\)$/', $value ) ) {
+					$color_entry['rgb'] = $value;
+				} elseif ( preg_match( '/^hsla?\([^)]+\)$/', $value ) ) {
+					$color_entry['hex'] = $value;
+				}
+			}
+
+			$core_palette[0]['colors'][] = $color_entry;
 		}
 
 		$all = array( ...$others_palette, ...$core_palette );
