@@ -1,6 +1,6 @@
 {
   "../../../node_modules/canvg/lib/index.es.js": {
-    "file": "index.es-B5P8lJxg.js",
+    "file": "index.es-sHYmhCzY.js",
     "name": "index.es",
     "src": "../../../node_modules/canvg/lib/index.es.js",
     "isDynamicEntry": true,
@@ -19,7 +19,7 @@
     "src": "assets/documentation_card.png"
   },
   "main.tsx": {
-    "file": "main-mZ5SfXmJ.js",
+    "file": "main-B8Lu9vST.js",
     "name": "main",
     "src": "main.tsx",
     "isEntry": true,
