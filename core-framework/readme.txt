@@ -3,61 +3,85 @@ Contributors: coreframework
 Tags: css, framework, stylesheet, bricks, oxygen
 Requires at least: 6.0
 Requires PHP: 8.0
-Tested up to: 6.9.4
-Stable tag: 1.10.4
-License: GPLv2
-License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Tested up to: 7.0
+Stable tag: 2.0.0
+License: MIT
+License URI: https://opensource.org/license/mit
 
-Say hello to Core Framework - a FREE modular CSS framework platform.
+Build and manage a portable CSS framework and design system directly inside WordPress.
 
 == Description ==
-Hey there! If you're tinkering with WordPress and have a knack for making sites look just right, you might like what we've cooked up with Core Framework. It's like a Swiss Army knife for your CSS woes but way easier to use and with a lot more fun involved.
 
-## What's Cooking?
-✅ **Make It Yours**: Ever felt boxed in by CSS frameworks? We get it. That’s why we made Core Framework as customizable as a build-your-own pizza. You start with our base (which is pretty awesome on its own), and then add, tweak, or remove anything you don’t need. It’s all about making it fit your project like a glove.
+Core Framework is a visual CSS framework and design-token builder. Define colors, typography, spacing, layouts, components, utility classes, and custom styles in one project, then generate the CSS used by your WordPress site.
 
-✅ **Play Well with Others**: Whether you’re team Gutenberg, all about Bricks, or an Oxygen fan, we’ve got your back. Core Framework slides right into your workflow, making it that much smoother to sprinkle your design magic everywhere.
+The plugin and all included integrations are free and open source. There is no license activation and no paid feature gate.
 
-✅ **A Dash of This, A Dash of That**: Organize your colors, manage those borders, and set your typography scale just right. We’re all about making the tedious tasks a piece of cake, so you can focus on the fun parts of design.
+= Features =
 
-✅ **Components Galore**: Reusable components are your best friends. Buttons, input styles, cards - you name it, we help you keep it all neat and tidy, ready to be reused whenever you need them.
+* Visual framework and design-token editor
+* Fluid typography and spacing scales
+* Color shade and tint generation
+* Utility classes, components, layouts, and custom stylesheets
+* Project import and export
+* Gutenberg integration
+* Bricks integration
+* Oxygen integration
+* Figma synchronization
 
-✅ **Join the Club**: With over 4,000 buddies already in the Core Framework family, you’re in good company. Our [marketplace](https://coreframework.com/marketplace) is like a treasure chest of our ecosystem, full of add-ons, UI kits, and templates. Plus, you’re more than welcome to contribute as an author!
+= Integrations =
 
-## Who’s It For?
-From solo freelancers to big-time agencies, if you’re crafting websites, you’ll feel right at home with Core Framework. It’s all about making your life a bit easier and a lot more creative.
+Enable the integrations you use from **Core Framework → Add-ons**. Gutenberg, Bricks, Oxygen, and Figma support are included with the plugin; they are not separate paid add-ons.
 
-## Easy Peasy Setup
-Getting started is as simple as installing any WordPress plugin. Find Core Framework in your dashboard, hit "Save" after making changes, and voila! The framework is live on your site.
+= Marketplace =
 
-Learn more about all settings in our [documentation](https://docs.coreframework.com/) portal.
+The [Core Framework Marketplace](https://coreframework.com/marketplace) sells optional design kits and packs. Those content products are separate from the plugin and are not required to use any Core Framework feature or integration.
 
-## Customize to Your Heart’s Content
-Inside Core Framework, everything can be tweaked. Colors, classes, variables - mix and match them to create something that’s uniquely yours.
+= External services =
 
-## Need a Hand?
-Our support crew is here for you via Intercom on our site, and our docs are always available for a quick how-to or when you’re in the mood for some light reading.
+Core Framework works without a Core Framework account or hosted Core Framework backend. It makes an external request only when an administrator selects, previews, or imports a Google-hosted font:
 
-Simply contact us at any time using the Intercom at the [Core Framework](https://coreframework.com/) website or in our Facebook community [group](https://www.facebook.com/groups/coreframework).
+* The bundled font catalog is local. Selecting or previewing a Google Font requests CSS from https://fonts.googleapis.com. Importing it also downloads font files from https://fonts.gstatic.com, after which WordPress serves the saved font files locally. Requests identify the selected font family and variants; as with any web request, Google receives connection information such as the site's IP address and user agent. No Google API key or Google account is required.
+* Google Terms of Service: https://policies.google.com/terms
+* Google Privacy Policy: https://policies.google.com/privacy
+* Direct Figma-to-WordPress synchronization connects the Figma plugin directly to the user's own WordPress site using a connection key created by a site administrator. Project data is not routed through Core Framework servers.
 
-## Keeping It Fresh
-We’re always rolling out updates and staying on top of WordPress changes to make sure you’ve got the smoothest ride possible.
+The plugin's administration interface, image previews, project storage, CSS generation, and included integrations do not load assets from Core Framework servers. Core Framework does not contact a licensing server and does not require account activation.
 
-Find out about every Core Framework update in our [changelog](https://docs.coreframework.com/changelog/changelog).
+= Licensing =
 
-## From Friends You Trust
-Brought to you by the folks behind [Motion.page](https://motion.page/), we’ve been around the block and we’re here to stay. We love hearing from our users, so don’t be shy!
-
-## Come On In, The Water’s Fine
-Core Framework isn’t just about making sites look pretty (although it does that pretty well). It’s about enjoying the process, exploring new possibilities, and being part of a community that gets it. So, why not give it a whirl?
+Core Framework's original source code is licensed under the MIT License. Bundled dependencies retain their own open-source licenses. The release archive includes third-party-notices.txt for adapted source and artwork and third-party-licenses.txt for the complete production dependency inventory.
 
 == Installation ==
-Installing the plugin
-1. In your WordPress admin panel, go to *Plugins > New Plugin*, search for **Core Framework** and click “Install now“.
-2. Alternatively, download the plugin and upload the contents of *core-framework.zip* to your plugins directory, which usually is */wp-content/plugins/*.
-3. Activate the plugin.
-4. In your WordPress admin panel, go to *Core Framework > Addons* and enable or activate your preferred page builder integration.
-5. Click the 'Save' button to confirm and push the framework live.
+
+1. Install Core Framework from the WordPress plugin directory or upload the plugin ZIP.
+2. Activate **Core Framework**.
+3. Open **Core Framework → Add-ons** and enable the integrations you use.
+4. Configure your framework and click **Save changes** to generate the CSS.
+
+== Frequently Asked Questions ==
+
+= Is Core Framework free? =
+
+Yes. The plugin, web app, Figma integration, and included builder integrations are open source under the MIT License.
+
+= Are marketplace products required? =
+
+No. Marketplace design kits and packs are optional content products and are not part of the plugin.
+
+= Does Core Framework require a Google Fonts API key? =
+
+No. The font browser uses Google's public, keyless font endpoints.
 
 == Changelog ==
-Latest Changelog is available [here](https://docs.coreframework.com/changelog/changelog).
+
+= 2.0.0 =
+
+* Released Core Framework as free and open-source software under the MIT License.
+* Included the Gutenberg, Bricks, Oxygen, and Figma integrations without license checks or paid feature gates.
+* Updated the Oxygen 6 integration for Oxygen 6.1 and newer. Sites using Oxygen 6.0 should update Oxygen before installing Core Framework 2.0.
+* Replaced the Google Fonts API-key integration with a bundled catalog and keyless public endpoints.
+* Replaced the shared Figma cloud credential with direct, site-scoped connection keys.
+* Moved generated CSS to WordPress uploads storage and preserved it when upgrading from Core Framework 1.10.4.
+* Removed retired EDD licensing options while preserving site projects, integration preferences, fonts, and Figma connections.
+
+The complete changelog is available in the [source repository](https://github.com/corebunch/core-framework/blob/main/CHANGELOG.md) and the [documentation](https://docs.coreframework.com/changelog/changelog).

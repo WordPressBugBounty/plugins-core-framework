@@ -3,22 +3,22 @@
 /**
  * @package   CoreFramework
  * @author    Core Framework <hello@coreframework.com>
- * @copyright 2023 Core Framework
- * @license   EULA + GPLv2
+ * @copyright 2026 David Babinec
+ * @license   MIT
  * @link      https://coreframework.com
  *
  * Plugin Name:     Core Framework
  * Plugin URI:      https://coreframework.com
  * Description:     The CORE of your website
- * Version:         1.10.4
+ * Version:         2.0.0
  * Author:          Core Framework
  * Author URI:      https://coreframework.com
  * Text Domain:     core-framework
  * Domain Path:     /languages
- * License:         GPLv2
- * License URI:     https://coreframework.com/eula + https://www.gnu.org/licenses/gpl-2.0.html
+ * License:         MIT
+ * License URI:     https://opensource.org/license/mit
  * Requires PHP:    8.0
- * Requires WP:     6.0
+ * Requires at least: 6.0
  * Namespace:       CoreFramework
  */
 
@@ -40,10 +40,7 @@ define( 'CORE_FRAMEWORK_DIR_URL', plugin_dir_url( __FILE__ ) );
 define( 'CORE_FRAMEWORK_NAME', dirname( CORE_FRAMEWORK_MAIN_FILE ) );
 
 define( 'CORE_FRAMEWORK_DB_VER', '1.3' );
-define( 'CORE_FRAMEWORK_VERSION', '1.10.4' );
-
-define( 'CORE_FRAMEWORK_EDD_STORE_URL', 'https://edd.coreframework.com' );
-define( 'CORE_FRAMEWORK_FREE_ITEM_ID', 40 );
+define( 'CORE_FRAMEWORK_VERSION', '2.0.0' );
 
 define( 'CORE_FRAMEWORK_ASSETS_PREFIX', 'core-framework/core-framework/' );
 
@@ -58,19 +55,22 @@ if ( ! wp_installing() ) {
 }
 
 if ( ! class_exists( '\\' . Scaffold::class ) ) {
-	wp_die( __( 'Core Framework is unable to find the Scaffold class.', 'core-framework' ) );
+	wp_die( esc_html__( 'Core Framework is unable to find the Scaffold class.', 'core-framework' ) );
 }
 
 /**
  * Declare compatibility with WooCommerce features.
  * Core Framework doesn't interact with WooCommerce, so it's fully compatible.
  */
-add_action( 'before_woocommerce_init', function () {
-	if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
-		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
-		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', __FILE__, true );
+add_action(
+	'before_woocommerce_init',
+	function () {
+		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', __FILE__, true );
+		}
 	}
-} );
+);
 
 add_action(
 	'plugins_loaded',
@@ -78,7 +78,7 @@ add_action(
 		try {
 			new Scaffold( $core_framework_autoloader );
 		} catch ( Exception $e ) {
-			wp_die( __( 'Core Framework is unable to run the Scaffold class.', 'core-framework' ) );
+			wp_die( esc_html__( 'Core Framework is unable to run the Scaffold class.', 'core-framework' ) );
 		}
 	}
 );
@@ -86,15 +86,16 @@ add_action(
 add_action( 'wp_initialize_site', array( Setup::class, 'on_new_multi_site_blog' ), 999, 2 );
 add_action( 'admin_notices', 'core_framework_update_notices' );
 
-function core_framework_update_notices(){
-    if( get_transient( 'core-framework-update-notice' ) ){
-        ?>
-        <div class="updated notice is-dismissible">
-            <p>Core Framework has been installed. Please save changes in Core Framework plugin to update your stylesheet.</p>
-        </div>
-        <?php
-        delete_transient( 'core-framework-update-notice' );
-    }
+function core_framework_update_notices() {
+	if ( ! get_transient( 'core-framework-update-notice' ) ) {
+		return;
+	}
+	?>
+	<div class="updated notice is-dismissible">
+		<p><?php esc_html_e( 'Core Framework has been installed. Please save changes in Core Framework to update your stylesheet.', 'core-framework' ); ?></p>
+	</div>
+	<?php
+	delete_transient( 'core-framework-update-notice' );
 }
 
 /**

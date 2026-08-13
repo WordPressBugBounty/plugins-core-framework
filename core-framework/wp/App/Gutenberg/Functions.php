@@ -6,7 +6,7 @@
  * @package   CoreFramework
  * @author    Core Framework <hello@coreframework.com>
  * @copyright 2023 Core Framework
- * @license   EULA + GPLv2
+ * @license   MIT
  * @link      https://coreframework.com
  */
 
@@ -16,6 +16,7 @@ namespace CoreFramework\App\Gutenberg;
 
 use CoreFramework\Common\Abstracts\Base;
 use CoreFramework\Helper;
+use CoreFramework\StylesheetStorage;
 
 /**
  * Class Gutenberg
@@ -105,11 +106,11 @@ class Functions extends Base {
 
 		$styles .= '}';
 
-		wp_register_style( 'core-framework-inline', false );
+		wp_register_style( 'core-framework-inline', false, array(), CORE_FRAMEWORK_VERSION );
 		wp_enqueue_style( 'core-framework-inline' );
 		wp_add_inline_style( 'core-framework-inline', $css_string );
 
-		wp_register_style( 'core-framework-colors-classes-inline', false );
+		wp_register_style( 'core-framework-colors-classes-inline', false, array(), CORE_FRAMEWORK_VERSION );
     wp_enqueue_style( 'core-framework-colors-classes-inline' );
 		wp_add_inline_style( 'core-framework-colors-classes-inline', $styles );
 	}
@@ -122,13 +123,11 @@ class Functions extends Base {
 	 * Enqueue css in iframe
 	 */
 	public function enqueue_iframe_styles() {
-		$helper = new Helper();
-
 		\wp_enqueue_style(
 			'core-framework-gutenberg',
 			plugins_url( 'gutenberg/index.css', CORE_FRAMEWORK_ABSOLUTE ),
 			array(),
-			$helper->getStylesheetVersion(),
+			StylesheetStorage::get_version(),
 			'all'
 		);
 	}
@@ -138,17 +137,16 @@ class Functions extends Base {
 	 *
 	 * @since 1.0.0
 	 */
-	function enqueue_styles() {
+	public function enqueue_styles() {
 		if ( is_admin() ) {
 			$prefixed_css = get_option( 'core_framework_editor_prefixed_css', '' );
 			$name         = 'core-framework-prefixed-css';
 
-			wp_register_style( $name, false );
+			wp_register_style( $name, false, array(), CORE_FRAMEWORK_VERSION );
 			wp_enqueue_style( $name );
 			wp_add_inline_style( $name, $prefixed_css );
 
-			$helper  = new Helper();
-			$version = $helper->getStylesheetVersion();
+			$version = StylesheetStorage::get_version();
 
 			\wp_enqueue_style(
 				'core-framework-gutenberg',
@@ -168,7 +166,7 @@ class Functions extends Base {
 	 * @since 1.0.0
 	 * @param object $theme_json
 	 */
-	function add_colors( $theme_json ) {
+	public function add_colors( $theme_json ) {
 		$previous_palette = $theme_json->get_data()['settings']['color']['palette']['theme'] ?? array();
 		$core_colors      = get_option( 'core_framework_colors', array() );
 
@@ -311,41 +309,41 @@ class Functions extends Base {
 			array(
 				'global_colors' => array(
 					array(
-						'name'  => __( 'Contrast', 'generatepress' ),
+						'name'  => __( 'Contrast', 'core-framework' ),
 						'slug'  => 'contrast',
 						'color' => '#222222',
 					),
 					array(
 						/* translators: Contrast number */
-						'name'  => sprintf( __( 'Contrast %s', 'generatepress' ), '2' ),
+						'name'  => sprintf( __( 'Contrast %s', 'core-framework' ), '2' ),
 						'slug'  => 'contrast-2',
 						'color' => '#575760',
 					),
 					array(
 						/* translators: Contrast number */
-						'name'  => sprintf( __( 'Contrast %s', 'generatepress' ), '3' ),
+						'name'  => sprintf( __( 'Contrast %s', 'core-framework' ), '3' ),
 						'slug'  => 'contrast-3',
 						'color' => '#b2b2be',
 					),
 					array(
-						'name'  => __( 'Base', 'generatepress' ),
+						'name'  => __( 'Base', 'core-framework' ),
 						'slug'  => 'base',
 						'color' => '#f0f0f0',
 					),
 					array(
 						/* translators: Base number */
-						'name'  => sprintf( __( 'Base %s', 'generatepress' ), '2' ),
+						'name'  => sprintf( __( 'Base %s', 'core-framework' ), '2' ),
 						'slug'  => 'base-2',
 						'color' => '#f7f8f9',
 					),
 					array(
 						/* translators: Base number */
-						'name'  => sprintf( __( 'Base %s', 'generatepress' ), '3' ),
+						'name'  => sprintf( __( 'Base %s', 'core-framework' ), '3' ),
 						'slug'  => 'base-3',
 						'color' => '#ffffff',
 					),
 					array(
-						'name'  => __( 'Accent', 'generatepress' ),
+						'name'  => __( 'Accent', 'core-framework' ),
 						'slug'  => 'accent',
 						'color' => '#1e73be',
 					),

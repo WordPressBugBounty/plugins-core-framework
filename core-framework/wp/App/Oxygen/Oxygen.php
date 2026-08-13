@@ -6,7 +6,7 @@
  * @package   CoreFramework
  * @author    Core Framework <hello@coreframework.com>
  * @copyright 2023 Core Framework
- * @license   EULA + GPLv2
+ * @license   MIT
  * @link      https://coreframework.com
  */
 
@@ -15,6 +15,10 @@ declare(strict_types=1);
 namespace CoreFramework\App\Oxygen;
 
 use CoreFramework\Common\Abstracts\Base;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 /**
  * Class Oxygen
@@ -46,7 +50,7 @@ class Oxygen extends Base {
 		\add_action( 'plugins_loaded', array( $this, 'include_oxygen_elements' ), 100 );
 	}
 
-	function include_oxygen_elements() {
+	public function include_oxygen_elements(): void {
 		if ( ! class_exists( 'OxygenElement' ) ) {
 			return;
 		}

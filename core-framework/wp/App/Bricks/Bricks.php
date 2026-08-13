@@ -6,7 +6,7 @@
  * @package   CoreFramework
  * @author    Core Framework <hello@coreframework.com>
  * @copyright 2023 Core Framework
- * @license   EULA + GPLv2
+ * @license   MIT
  * @link      https://coreframework.com
  */
 
@@ -16,6 +16,10 @@ namespace CoreFramework\App\Bricks;
 
 use CoreFramework\Common\Abstracts\Base;
 use CoreFramework\Helper;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 /**
  * Merge multiple :root selectors into a single one
@@ -100,7 +104,7 @@ class Bricks extends Base {
 				$css .= $font['cssPreview'];
 		}
 
-		wp_register_style( 'core-framework-inline', false );
+		wp_register_style( 'core-framework-inline', false, array(), CORE_FRAMEWORK_VERSION );
 		wp_enqueue_style( 'core-framework-inline' );
 		wp_add_inline_style( 'core-framework-inline', merge_root_selectors( $css ) );
 	}

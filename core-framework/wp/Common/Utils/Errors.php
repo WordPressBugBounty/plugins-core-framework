@@ -5,7 +5,7 @@
  * @package   CoreFramework
  * @author    Core Framework <hello@coreframework.com>
  * @copyright 2023 Core Framework
- * @license   EULA + GPLv2
+ * @license   MIT
  * @link      https://coreframework.com
  */
 
@@ -45,12 +45,12 @@ class Errors {
 	 */
 	public static function wpDie( $message = '', $subtitle = '', $source = '', $exception = '', $title = '' ): void {
 		if ( $message ) {
-			$plugin = (object) self::getPluginData();
+			$plugin = self::getPluginData();
 			$title  = $title ?: $plugin['name'] .
 			' ' .
 			$plugin['version'] .
 			' ' .
-			\__( '&rsaquo; Fatal Error', 'core-framework' );
+			\__( '› Fatal Error', 'core-framework' );
 			self::writeLog(
 				array(
 					'title'     => $title . ' - ' . $subtitle,
@@ -60,17 +60,20 @@ class Errors {
 				)
 			);
 			$source = $source
-			? '<code>' .
-			sprintf( /* translators: %s: file path */\__( 'Error source: %s', 'core-framework' ), $source ) .
-			'</code><BR><BR>'
-			: '';
+				? sprintf(
+					'<code>%s</code><br><br>',
+					esc_html( sprintf( /* translators: %s: file path */ \__( 'Error source: %s', 'core-framework' ), $source ) )
+				)
+				: '';
 			\wp_die(
-				sprintf(
-					'<h1>%s<br><small>%s</small></h1>%s<hr><p>%s</p>',
-					esc_html( $title ),
-					esc_html( $subtitle ),
-					esc_html( $message ),
-					esc_html( $source )
+				\wp_kses_post(
+					sprintf(
+						'<h1>%s<br><small>%s</small></h1>%s<hr><p>%s</p>',
+						esc_html( $title ),
+						esc_html( $subtitle ),
+						$source,
+						esc_html( $message )
+					)
 				),
 				esc_html( $title )
 			);
@@ -97,12 +100,12 @@ class Errors {
 		$title = ''
 	): void {
 		if ( $message ) {
-			$plugin = (object) self::getPluginData();
+			$plugin = self::getPluginData();
 			$title  = $title ?: $plugin['name'] .
 			' ' .
 			$plugin['version'] .
 			' ' .
-			\__( '&rsaquo; Plugin Disabled', 'core-framework' );
+			\__( '› Plugin Disabled', 'core-framework' );
 			self::writeLog(
 				array(
 					'title'     => $title . ' - ' . $subtitle,
@@ -112,12 +115,16 @@ class Errors {
 				)
 			);
 			$source = $source
-			? '<small>' .
-			sprintf( /* translators: %s: file path */\__( 'Error source: %s', 'core-framework' ), $source ) .
-			'</small> - '
-			: '';
-			$footer = $source . '<a href="' . $plugin['uri'] . '"><small>' . $plugin['uri'] . '</small></a>';
-			$error  = sprintf( '<strong><h3>%s</h3>%s</strong><p>%s</p><hr><p>%s</p>', $title, $subtitle, $message, $footer );
+				? '<small>' . esc_html( sprintf( /* translators: %s: file path */ \__( 'Error source: %s', 'core-framework' ), $source ) ) . '</small> - '
+				: '';
+			$footer = $source . '<a href="' . esc_url( $plugin['uri'] ) . '"><small>' . esc_html( $plugin['uri'] ) . '</small></a>';
+			$error  = sprintf(
+				'<strong><h3>%s</h3>%s</strong><p>%s</p><hr><p>%s</p>',
+				esc_html( $title ),
+				esc_html( $subtitle ),
+				esc_html( $message ),
+				$footer
+			);
 			global $core_framework_die_notice;
 			$core_framework_die_notice = $error;
 			\add_action(
@@ -133,7 +140,10 @@ class Errors {
 			'admin_init',
 			static function (): void {
 				\deactivate_plugins( CORE_FRAMEWORK_MAIN_FILE );
+				// This only removes WordPress's activation flag after deactivation; no input is consumed.
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				if ( isset( $_GET['activate'] ) ) {
+					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 					unset( $_GET['activate'] );
 				}
 			}
@@ -149,8 +159,12 @@ class Errors {
 	public static function writeLog( $log ): void {
 		if ( true === WP_DEBUG ) {
 			if ( is_array( $log ) || is_object( $log ) ) {
-				error_log( print_r( $log, true ) );
-			} else {
+				$log = wp_json_encode( $log );
+			}
+
+			if ( is_string( $log ) ) {
+				// This method exists only for explicit diagnostics when WP_DEBUG is enabled.
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 				error_log( $log );
 			}
 		}

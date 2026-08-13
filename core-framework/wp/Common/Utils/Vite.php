@@ -5,7 +5,7 @@
  * @package   CoreFramework
  * @author    Core Framework <hello@coreframework.com>
  * @copyright 2023 Core Framework
- * @license   EULA + GPLv2
+ * @license   MIT
  * @link      https://coreframework.com
  */
 
@@ -57,6 +57,8 @@ class Vite {
 	 * @return void
 	 */
 	private static function jsPreloadImports( string $entry ): void {
+		unset( $entry );
+
 		/**
 		 * Allows HMR to work properly. Only needed in development.
 		 */
@@ -64,33 +66,26 @@ class Vite {
 			\add_action(
 				'wp_print_scripts',
 				function (): void {
-					$url = self::getDevFullPath();
-					Errors::writeLog( $url );
-					echo <<<HTML
-					<script type="module">
-					import RefreshRuntime from "{$url}@react-refresh";
-					window.RefreshRuntime = RefreshRuntime;
-					RefreshRuntime.injectIntoGlobalHook(window)
-					window.\$RefreshReg$ = () => {}
-					window.\$RefreshSig$ = () => (type) => type
-					window.__vite_plugin_react_preamble_installed__ = true
-					</script>
-					<script type="module" src="{$url}@vite/client"></script>
-					HTML;
+					$url             = self::getDevFullPath();
+					$refresh_runtime = \wp_json_encode( $url . '@react-refresh' );
+					$preamble        = "import RefreshRuntime from {$refresh_runtime};\n"
+						. "window.RefreshRuntime = RefreshRuntime;\n"
+						. "RefreshRuntime.injectIntoGlobalHook(window);\n"
+						. "window.\$RefreshReg\$ = () => {};\n"
+						. "window.\$RefreshSig\$ = () => (type) => type;\n"
+						. 'window.__vite_plugin_react_preamble_installed__ = true;';
+
+					\wp_print_inline_script_tag( $preamble, array( 'type' => 'module' ) );
+					\wp_print_script_tag(
+						array(
+							'type' => 'module',
+							'src'  => \esc_url( $url . '@vite/client' ),
+						)
+					);
 				},
 				99
 			);
-			return;
 		}
-
-		\add_action(
-			'wp_head',
-			function () use ( &$entry ): void {
-				foreach ( self::importsUrls( $entry ) as $url ) {
-					echo '<link rel="modulepreload" href="' . esc_url( $url ) . '">';
-				}
-			}
-		);
 	}
 
 	private static function cssTag( string $entry ): string {
@@ -102,7 +97,12 @@ class Vite {
 
 		$tags = '';
 		foreach ( self::cssUrls( $entry ) as $url ) {
-			\wp_enqueue_style( CORE_FRAMEWORK_ASSETS_PREFIX . $entry, $url );
+			\wp_enqueue_style(
+				CORE_FRAMEWORK_ASSETS_PREFIX . $entry,
+				$url,
+				array(),
+				self::getPluginData()['version']
+			);
 		}
 
 		return $tags;
@@ -142,7 +142,7 @@ class Vite {
 		$manifest = self::getManifest();
 		return isset( $manifest[ $entry ] )
 		? CORE_FRAMEWORK_DIR_URL . 'dist/' . $manifest[ $entry ]['file']
-		: CORE_FRAMEWORK_DIR_ROOT . 'dist/' . $entry;
+		: CORE_FRAMEWORK_DIR_URL . 'dist/' . $entry;
 	}
 
 	private static function getPublicURLBase() {

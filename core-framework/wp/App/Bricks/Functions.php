@@ -6,7 +6,7 @@
  * @package   CoreFramework
  * @author    Core Framework <hello@coreframework.com>
  * @copyright 2023 Core Framework
- * @license   EULA + GPLv2
+ * @license   MIT
  * @link      https://coreframework.com
  */
 
@@ -16,6 +16,7 @@ namespace CoreFramework\App\Bricks;
 
 use CoreFramework\Common\Abstracts\Base;
 use CoreFramework\Helper;
+use CoreFramework\StylesheetStorage;
 
 /**
  * Class Bricks
@@ -177,8 +178,7 @@ class Functions extends Base {
 		}
 
 		try {
-			$helper             = new Helper();
-			$stylesheet_content = file_get_contents( $helper->getStylesheetPath() );
+			$stylesheet_content = StylesheetStorage::read();
 
 			if ( $stylesheet_content === false ) {
 				return array(
@@ -334,23 +334,7 @@ class Functions extends Base {
 				continue;
 			}
 
-			$color_entry = array(
-				'raw'  => $raw,
-				'id'   => $id,
-				'name' => $name,
-			);
-
-			if ( ! empty( $value ) ) {
-				if ( preg_match( '/^#[0-9a-fA-F]{3,8}$/', $value ) ) {
-					$color_entry['hex'] = $value;
-				} elseif ( preg_match( '/^rgba?\([^)]+\)$/', $value ) ) {
-					$color_entry['rgb'] = $value;
-				} elseif ( preg_match( '/^hsla?\([^)]+\)$/', $value ) ) {
-					$color_entry['hex'] = $value;
-				}
-			}
-
-			$core_palette[0]['colors'][] = $color_entry;
+			$core_palette[0]['colors'][] = self::create_color_entry( $id, $name, $raw, $value );
 		}
 
 		$all = array( ...$others_palette, ...$core_palette );
@@ -358,6 +342,51 @@ class Functions extends Base {
 		update_option( self::BRICKS_COLOR_PALETTES_OPTION, array_values( $all ), false );
 
 		return array( 'status' => 'success' );
+	}
+
+	/**
+	 * Create a Bricks color palette entry with a single color representation.
+	 *
+	 * @param string $id Color ID.
+	 * @param string $name Color name.
+	 * @param string $raw Raw color value.
+	 * @param string $value Resolved color value.
+	 * @return array{id: string, name: string, raw?: string, hex?: string, rgb?: string, hsl?: string}
+	 */
+	private static function create_color_entry( string $id, string $name, string $raw, string $value ): array {
+		$color_entry = array(
+			'id'   => $id,
+			'name' => $name,
+		);
+
+		if ( preg_match( '/^var\(--[^)]+\)$/', $raw ) ) {
+			$color_entry['raw'] = $raw;
+			return $color_entry;
+		}
+
+		foreach ( array( $value, $raw ) as $bricks_value ) {
+			if ( empty( $bricks_value ) ) {
+				continue;
+			}
+
+			if ( preg_match( '/^#[0-9a-fA-F]{3,8}$/', $bricks_value ) ) {
+				$color_entry['hex'] = $bricks_value;
+				return $color_entry;
+			}
+
+			if ( preg_match( '/^rgba?\([^)]+\)$/', $bricks_value ) ) {
+				$color_entry['rgb'] = $bricks_value;
+				return $color_entry;
+			}
+
+			if ( preg_match( '/^hsla?\([^)]+\)$/', $bricks_value ) ) {
+				$color_entry['hsl'] = $bricks_value;
+				return $color_entry;
+			}
+		}
+
+		$color_entry['raw'] = $raw;
+		return $color_entry;
 	}
 
 	/**
@@ -378,9 +407,8 @@ class Functions extends Base {
 	 * @since 1.1.2
 	 */
 	public function determine_load(): bool {
-		$option  = get_option( 'core_framework_main', array() );
-		$license = get_option( 'core_framework_bricks_license_key', false );
-		return isset( $option['bricks'] ) && $option['bricks'] && $license;
+		$option = get_option( 'core_framework_main', array() );
+		return isset( $option['bricks'] ) && $option['bricks'];
 	}
 
 	public function add_to_bricks_categories() {

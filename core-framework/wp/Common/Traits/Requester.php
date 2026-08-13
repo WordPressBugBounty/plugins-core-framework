@@ -5,7 +5,7 @@
  * @package   CoreFramework
  * @author    Core Framework <hello@coreframework.com>
  * @copyright 2023 Core Framework
- * @license   EULA + GPLv2
+ * @license   MIT
  * @link      https://coreframework.com
  */
 
@@ -109,8 +109,15 @@ trait Requester {
 	 * @since 0.0.0
 	 */
 	public function isRest(): bool {
-		$rest_url = apply_filters('rest_url_prefix', 'wp-json');
-		return strpos( $_SERVER['REQUEST_URI'] ?? '', $rest_url ) !== false || defined( 'REST_REQUEST' );
+		// rest_url_prefix is a WordPress core filter, not a plugin-owned hook.
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+		$rest_prefix = (string) apply_filters( 'rest_url_prefix', 'wp-json' );
+		$request_uri = isset( $_SERVER['REQUEST_URI'] )
+			? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) )
+			: '';
+		$is_plain_rest_request = 1 === preg_match( '/(?:\?|&)rest_route=/', $request_uri );
+
+		return false !== strpos( $request_uri, $rest_prefix ) || $is_plain_rest_request || defined( 'REST_REQUEST' );
 	}
 
 	/**

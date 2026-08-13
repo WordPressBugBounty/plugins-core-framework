@@ -6,7 +6,7 @@
  * @package   CoreFramework
  * @author    Core Framework <hello@coreframework.com>
  * @copyright 2023 Core Framework
- * @license   EULA + GPLv2
+ * @license   MIT
  * @link      https://coreframework.com
  */
 
@@ -16,6 +16,7 @@ namespace CoreFramework\App\Rest;
 
 use CoreFramework\Common\Abstracts\Base;
 use CoreFramework\Helper;
+use CoreFramework\StylesheetStorage;
 
 /**
  * Class AllPoints
@@ -24,22 +25,35 @@ use CoreFramework\Helper;
  * @since 0.0.0
  */
 class AllPoints extends Base {
+	/**
+	 * Initialize the WordPress filesystem API.
+	 *
+	 * @return \WP_Filesystem_Base|null
+	 */
+	private function get_filesystem() {
+		global $wp_filesystem;
+
+		if ( ! \function_exists( 'WP_Filesystem' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		if ( ! \WP_Filesystem() || ! \is_object( $wp_filesystem ) ) {
+			return null;
+		}
+
+		return $wp_filesystem;
+	}
 
 	/**
-	 * Check if an addon is enabled and licensed
+	 * Check if an add-on is enabled.
 	 *
 	 * @param string $addon The addon name (e.g., 'oxygen', 'bricks', 'gutenberg')
-	 * @return bool Whether the addon is enabled and licensed
+	 * @return bool Whether the add-on is enabled
 	 */
 	private function is_addon_enabled( $addon ) {
 		$options = get_option( 'core_framework_main', array() );
 
-		if ( $addon === 'gutenberg' ) {
-			return isset( $options[ $addon ] ) && $options[ $addon ];
-		}
-
-		$license_key = get_option( "core_framework_{$addon}_license_key", '' );
-		return isset( $options[ $addon ] ) && $options[ $addon ] && ! empty( $license_key );
+		return isset( $options[ $addon ] ) && $options[ $addon ];
 	}
 
 	/**
@@ -206,7 +220,7 @@ class AllPoints extends Base {
 		}
 
 		if ( $readonly_capabilites ) {
-			return ( \current_user_can( 'manage_options' ) || \current_user_can( 'editor' ) ) && \wp_verify_nonce( $nonce, 'wp_rest' );
+			return ( \current_user_can( 'manage_options' ) || \current_user_can( 'edit_pages' ) ) && \wp_verify_nonce( $nonce, 'wp_rest' );
 		}
 
 		return \current_user_can( 'manage_options' ) && \wp_verify_nonce( $nonce, 'wp_rest' );
@@ -231,17 +245,26 @@ class AllPoints extends Base {
 			$readonly_routes[ $key ] = '/core-framework/v2' . $value;
 		}
 
-		$nonce = $request->get_header( 'X-WP-Nonce' );
-		return $this->permission( $nonce, in_array( $route, $readonly_routes ) );
+		$nonce = (string) $request->get_header( 'X-WP-Nonce' );
+		return $this->permission( $nonce, in_array( $route, $readonly_routes, true ) );
 	}
 
 	/**
-	 * Verify API Key
+	 * Verify connection key
 	 *
 	 * @return bool
 	 */
 	public function verify_api_key( \WP_REST_Request $request ): bool {
-		$key = $request->get_param( 'key' ) ?? '';
+		$authorization = $request->get_header( 'authorization' ) ?? '';
+		$key           = $request->get_header( 'x-core-framework-key' ) ?? '';
+
+		if ( ! $key && strpos( $authorization, 'Bearer ' ) === 0 ) {
+			$key = substr( $authorization, strlen( 'Bearer ' ) );
+		}
+
+		if ( ! $key ) {
+			$key = $request->get_param( 'key' ) ?? '';
+		}
 
 		if ( ! $key || strlen( $key ) < 24 ) {
 			return false;
@@ -253,7 +276,7 @@ class AllPoints extends Base {
 			return false;
 		}
 
-		// The API key is composed of a 24-char random password + URL-encoded site URL.
+		// The connection key is composed of a 24-char random password + URL-encoded site URL.
 		// When passed as a query parameter, PHP auto-decodes the URL portion, so the
 		// full strings won't match. Compare only the 24-char password portion.
 		$target_checksum = substr( $target_key, 0, 24 );
@@ -382,26 +405,6 @@ class AllPoints extends Base {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_builders' ),
-				'permission_callback' => array( $this, 'verify_nonce' ),
-			)
-		);
-
-		register_rest_route(
-			CORE_FRAMEWORK_NAME . '/v2',
-			'/get-license-keys',
-			array(
-				'methods'             => \WP_REST_Server::READABLE,
-				'callback'            => array( $this, 'get_license_keys' ),
-				'permission_callback' => array( $this, 'verify_nonce' ),
-			)
-		);
-
-		register_rest_route(
-			CORE_FRAMEWORK_NAME . '/v2',
-			'/update-license-key',
-			array(
-				'methods'             => \WP_REST_Server::CREATABLE,
-				'callback'            => array( $this, 'update_license_key' ),
 				'permission_callback' => array( $this, 'verify_nonce' ),
 			)
 		);
@@ -595,13 +598,15 @@ class AllPoints extends Base {
 		$time = \current_time( 'mysql' );
 
 		global $wpdb;
-		$table_name   = $wpdb->prefix . 'core_framework_presets';
+		$table_name   = \esc_sql( $wpdb->prefix . 'core_framework_presets' );
 		$target_table = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
 
 		if ( $target_table != $table_name ) {
 			CoreFramework()->createTable();
 		}
 
+		// The identifier is the WordPress-controlled table prefix plus a fixed plugin suffix.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table_name WHERE id = %s", $id ) );
 
 		if ( $exists ) {
@@ -652,110 +657,141 @@ class AllPoints extends Base {
 		);
 	}
 
-	public function handle_font_upload(\WP_REST_Request $request) {
-		$upload_dir = wp_upload_dir()['basedir'] . '/core-framework/fonts/';
+	public function handle_font_upload( \WP_REST_Request $request ) {
+		$uploads = \wp_upload_dir();
 
-		if (!file_exists($upload_dir)) {
-				wp_mkdir_p($upload_dir);
+		if ( ! empty( $uploads['error'] ) ) {
+			return new \WP_Error( 'upload_directory_error', $uploads['error'], array( 'status' => 500 ) );
 		}
 
-		$fonts = $request->get_param('fonts');
-		if (empty($fonts) || !is_array($fonts)) {
-				return new WP_Error(
-						'invalid_request',
-						'No fonts provided or invalid format.',
-						['status' => 400]
+		$upload_dir = \trailingslashit( $uploads['basedir'] ) . 'core-framework/fonts/';
+		$filesystem = $this->get_filesystem();
+
+		if ( null === $filesystem || ( ! $filesystem->is_dir( $upload_dir ) && ! \wp_mkdir_p( $upload_dir ) ) ) {
+			return new \WP_Error( 'upload_directory_error', 'Unable to prepare the font upload directory.', array( 'status' => 500 ) );
+		}
+
+		$fonts = $request->get_param( 'fonts' );
+
+		if ( empty( $fonts ) || ! \is_array( $fonts ) ) {
+			return new \WP_Error( 'invalid_request', 'No fonts provided or invalid format.', array( 'status' => 400 ) );
+		}
+
+		$saved_files       = array();
+		$errors            = array();
+		$allowed_extensions = array( 'woff', 'woff2', 'ttf', 'otf', 'eot' );
+
+		foreach ( $fonts as $font ) {
+			if ( ! \is_array( $font ) || ! isset( $font['filename'], $font['font_base64'] ) || ! \is_string( $font['filename'] ) || ! \is_string( $font['font_base64'] ) ) {
+				$errors[] = array(
+					'filename' => null,
+					'error'    => 'Invalid font entry.',
 				);
-		}
-
-		$saved_files = [];
-		$errors = [];
-
-		$allowed_extensions = ['woff', 'woff2', 'ttf', 'otf', 'eot'];
-
-		foreach ($fonts as $font) {
-			$filename = basename($font['filename']);
-			$ext      = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-
-			if (!in_array($ext, $allowed_extensions, true)) {
-				return new \WP_Error('invalid_file', 'Invalid font file type', ['status' => 400]);
+				continue;
 			}
 
-			$font_content = base64_decode($font['font_base64']);
+			$filename = \sanitize_file_name( $font['filename'] );
+			$extension = \strtolower( \pathinfo( $filename, PATHINFO_EXTENSION ) );
+
+			if ( '' === $filename || ! \in_array( $extension, $allowed_extensions, true ) ) {
+				$errors[] = array(
+					'filename' => $filename,
+					'error'    => 'Invalid font file type.',
+				);
+				continue;
+			}
+
+			$font_content = \base64_decode( $font['font_base64'], true );
+
+			if ( false === $font_content || \strlen( $font_content ) > 10 * MB_IN_BYTES ) {
+				$errors[] = array(
+					'filename' => $filename,
+					'error'    => 'Invalid or oversized font data.',
+				);
+				continue;
+			}
+
 			$file_path = $upload_dir . $filename;
+			$written   = $filesystem->put_contents(
+				$file_path,
+				$font_content,
+				\defined( 'FS_CHMOD_FILE' ) ? FS_CHMOD_FILE : 0644
+			);
 
-			if (file_put_contents($file_path, $font_content) === false) {
-				$errors[] = [
+			if ( ! $written ) {
+				$errors[] = array(
 					'filename' => $filename,
-					'error' => 'Failed to save file.'
-				];
-			} else {
-				$saved_files[] = [
-					'filename' => $filename,
-					'file_path' => $file_path
-				];
+					'error'    => 'Failed to save file.',
+				);
+				continue;
 			}
+
+			$saved_files[] = array(
+				'filename'  => $filename,
+				'file_path' => $file_path,
+			);
 		}
 
-		return [
-				'success' => true,
-				'saved_files' => $saved_files,
-				'errors' => $errors,
-		];
+		return array(
+			'success'     => empty( $errors ),
+			'saved_files' => $saved_files,
+			'errors'      => $errors,
+		);
 	}
 
-	public function handle_font_delete(\WP_REST_Request $request) {
-  	$upload_dir = wp_upload_dir()['basedir'] . '/core-framework/fonts/';
-  	$fonts = $request->get_param('fonts');
+	public function handle_font_delete( \WP_REST_Request $request ) {
+		$uploads    = \wp_upload_dir();
+		$upload_dir = \trailingslashit( $uploads['basedir'] ) . 'core-framework/fonts/';
+		$fonts      = $request->get_param( 'fonts' );
 
-  	if (empty($fonts) || !is_array($fonts)) {
-  		return new WP_Error(
-  			'invalid_request',
-  			'No fonts provided or invalid format.',
-  			['status' => 400]
-  		);
-  	}
+		if ( empty( $fonts ) || ! \is_array( $fonts ) ) {
+			return new \WP_Error( 'invalid_request', 'No fonts provided or invalid format.', array( 'status' => 400 ) );
+		}
 
-  	$deleted = [];
-  	$errors = [];
+		$deleted = array();
+		$errors  = array();
 
-  	foreach ($fonts as $font) {
-  		if (!isset($font['filename'])) {
-  			$errors[] = [
-  				'filename' => null,
-  				'error' => 'Missing filename key in font entry.'
-  			];
-  			continue;
-  		}
+		foreach ( $fonts as $font ) {
+			if ( ! \is_array( $font ) || ! isset( $font['filename'] ) || ! \is_string( $font['filename'] ) ) {
+				$errors[] = array(
+					'filename' => null,
+					'error'    => 'Missing filename key in font entry.',
+				);
+				continue;
+			}
 
-  		$sanitized = basename($font['filename']);
-  		$file_path = $upload_dir . $sanitized;
+			$filename  = \sanitize_file_name( $font['filename'] );
+			$file_path = $upload_dir . $filename;
 
-  		if (file_exists($file_path)) {
-  			if (unlink($file_path)) {
-  				$deleted[] = $sanitized;
-  			} else {
-  				$errors[] = [
-  					'filename' => $sanitized,
-  					'error' => 'Failed to delete file.'
-  				];
-  			}
-  		} else {
-  			$errors[] = [
-  				'filename' => $sanitized,
-  				'error' => 'File does not exist.'
-  			];
-  		}
-  	}
+			if ( ! \is_file( $file_path ) ) {
+				$errors[] = array(
+					'filename' => $filename,
+					'error'    => 'File does not exist.',
+				);
+				continue;
+			}
 
-  	return [
-  		'success' => true,
-  		'deleted' => $deleted,
-  		'errors' => $errors,
-  	];
-  }
+			\wp_delete_file( $file_path );
 
-	function get_core_fonts() {
+			if ( \is_file( $file_path ) ) {
+				$errors[] = array(
+					'filename' => $filename,
+					'error'    => 'Failed to delete file.',
+				);
+				continue;
+			}
+
+			$deleted[] = $filename;
+		}
+
+		return array(
+			'success' => empty( $errors ),
+			'deleted' => $deleted,
+			'errors'  => $errors,
+		);
+	}
+
+	public function get_core_fonts() {
 		$helper = new Helper();
 
 		if ( $helper->isFontsDisabled() ) {
@@ -781,7 +817,7 @@ class AllPoints extends Base {
 		$id = $request->get_param( 'id' ) ?? '';
 
 		global $wpdb;
-		$table_name = $wpdb->prefix . 'core_framework_presets';
+		$table_name = \esc_sql( $wpdb->prefix . 'core_framework_presets' );
 
 		$wpdb->delete(
 			$table_name,
@@ -814,8 +850,10 @@ class AllPoints extends Base {
 		$id = $request->get_param( 'id' ) ?? '';
 
 		global $wpdb;
-		$table_name = $wpdb->prefix . 'core_framework_presets';
+		$table_name = \esc_sql( $wpdb->prefix . 'core_framework_presets' );
 		$row        = $wpdb->get_row(
+			// The identifier is the WordPress-controlled table prefix plus a fixed plugin suffix.
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare( "SELECT * FROM $table_name WHERE id = %s", $id )
 		);
 
@@ -843,38 +881,40 @@ class AllPoints extends Base {
 		$cssString = $request->get_param( 'cssString' ) ?? '';
 		$id        = $request->get_param( 'id' ) ?? '';
 
-		if ( ! $cssString || ! $id ) {
-			http_response_code( 400 );
-			exit();
+		if ( ! \is_string( $cssString ) || '' === $cssString || ! \is_string( $id ) || '' === $id ) {
+			return new \WP_REST_Response( array( 'message' => 'CSS and preset ID are required.' ), 400 );
 		}
-
-		$option_name             = 'core_framework_main';
-		$settings                = \get_option( $option_name );
-		$settings['selected_id'] = $id;
-
-		\update_option( $option_name, $settings, false );
 
 		$forbidden_css = ['<script', 'expression(', 'javascript:', '@import url("http'];
 		foreach ( $forbidden_css as $pattern ) {
-			if ( stripos( $cssString, $pattern ) !== false ) {
+			if ( false !== stripos( $cssString, $pattern ) ) {
 				return new \WP_REST_Response( array( 'message' => 'Invalid CSS content' ), 400 );
 			}
 		}
 
-		$plugin_root = plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE );
+		$option_name = 'core_framework_main';
+		$settings    = \get_option( $option_name, array() );
 
-		if ( is_multisite() ) {
-			$bytes_saved = \file_put_contents( $plugin_root . 'assets/public/css/core_framework_' . get_current_blog_id() . '.css', $cssString );
-		} else {
-			$bytes_saved = \file_put_contents( $plugin_root . 'assets/public/css/core_framework.css', $cssString );
+		if ( ! \is_array( $settings ) ) {
+			$settings = array();
 		}
 
-		if ( \is_wp_error( $settings ) ) {
-			http_response_code( 400 );
-			exit();
-		}
+		$settings['selected_id'] = $id;
+		\update_option( $option_name, $settings, false );
 
 		\update_option( 'core_framework_selected_preset_backup', $cssString, false );
+
+		$bytes_saved = StylesheetStorage::write( $cssString );
+
+		if ( false === $bytes_saved ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'Unable to write the generated stylesheet to the WordPress uploads directory.',
+				),
+				500
+			);
+		}
 
 		CoreFramework()->purge_cache();
 
@@ -917,13 +957,13 @@ class AllPoints extends Base {
 				'is_active'     => CoreFrameworkOxygen()->is_oxygen(),
 				'class'         => CoreFrameworkOxygen(),
 				'key'           => 'oxygen',
-				'addon_license' => $is_addon_enabled( $addon_enable_array, 'oxygen' ),
+				'is_enabled'    => $is_addon_enabled( $addon_enable_array, 'oxygen' ),
 			),
 			'bricks' => array(
 				'is_active'     => CoreFrameworkBricks()->is_bricks(),
 				'class'         => CoreFrameworkBricks(),
 				'key'           => 'bricks',
-				'addon_license' => $is_addon_enabled( $addon_enable_array, 'bricks' ),
+				'is_enabled'    => $is_addon_enabled( $addon_enable_array, 'bricks' ),
 			),
 		);
 
@@ -935,7 +975,7 @@ class AllPoints extends Base {
 				continue;
 			}
 
-			if ( ! $builder['addon_license'] ) {
+			if ( ! $builder['is_enabled'] ) {
 				continue;
 			}
 
@@ -1020,13 +1060,13 @@ class AllPoints extends Base {
 				'is_active'     => CoreFrameworkOxygen()->is_oxygen(),
 				'class'         => CoreFrameworkOxygen(),
 				'key'           => 'oxygen',
-				'addon_license' => $is_addon_enabled( $addon_enable_array, 'oxygen' ),
+				'is_enabled'    => $is_addon_enabled( $addon_enable_array, 'oxygen' ),
 			),
 			'bricks' => array(
 				'is_active'     => CoreFrameworkBricks()->is_bricks(),
 				'class'         => CoreFrameworkBricks(),
 				'key'           => 'bricks',
-				'addon_license' => $is_addon_enabled( $addon_enable_array, 'bricks' ),
+				'is_enabled'    => $is_addon_enabled( $addon_enable_array, 'bricks' ),
 			),
 		);
 
@@ -1034,7 +1074,7 @@ class AllPoints extends Base {
 		$core_setting    = \get_option( 'core_framework_main' );
 
 		foreach ( $builder_array as $builder ) {
-			if ( ! $builder['addon_license'] ) {
+			if ( ! $builder['is_enabled'] ) {
 				continue;
 			}
 
@@ -1084,60 +1124,6 @@ class AllPoints extends Base {
 			array(
 				'builders'  => $builders,
 				'isOxygen6' => CoreFrameworkOxygen()->is_oxygen6(),
-			)
-		);
-	}
-
-	/**
-	 * Get license keys from the database
-	 *
-	 * @since 1.0.0
-	 */
-	public function get_license_keys() {
-		$license_keys       = array();
-		$license_keys_array = array(
-			'oxygen' => '',
-			'bricks' => '',
-			'figma'  => '',
-		);
-
-		foreach ( $license_keys_array as $key => $value ) {
-			$license_keys[ $key ] = get_option( 'core_framework_' . $key . '_license_key' );
-		}
-
-		return new \WP_REST_Response(
-			array(
-				'license_keys' => $license_keys,
-			)
-		);
-	}
-
-	/**
-	 * Update license key in the database
-	 *
-	 * @since 1.0.0
-	 */
-	public function update_license_key( \WP_REST_Request $request ) {
-		$license_key = $request->get_param( 'license_key' ) ?? '';
-		$type        = $request->get_param( 'type' ) ?? '';
-
-		if ( $license_key === null || $type === null ) {
-			http_response_code( 400 );
-			exit();
-		}
-
-		$allowed_types = ['oxygen', 'bricks', 'figma'];
-		if (!in_array($type, $allowed_types, true)) {
-			return new \WP_REST_Response(['message' => 'Invalid license type'], 400);
-		}
-
-		update_option( 'core_framework_' . $type . '_license_key', $license_key, false );
-
-		CoreFramework()->purge_cache();
-
-		return new \WP_REST_Response(
-			array(
-				'success' => true,
 			)
 		);
 	}
@@ -1308,31 +1294,6 @@ class AllPoints extends Base {
 			);
 		}
 
-		$key = $is_bricks ? get_option( 'core_framework_bricks_license_key' ) : get_option( 'core_framework_oxygen_license_key' );
-
-		if ( ! $key ) {
-			return new \WP_REST_Response(
-				$empty_response
-			);
-		}
-
-		$response = wp_remote_post( CORE_FRAMEWORK_EDD_STORE_URL, array(
-		'body' => array(
-			'edd_action' => 'check_license',
-			'item_id'    => $is_bricks ? '12' : '15',
-			'license'    => $key,
-			'url'        => get_site_url(),
-			'version'    => CORE_FRAMEWORK_VERSION,
-		),
-	) );
-		$res_json = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( isset( $res_json['license'] ) && $res_json['success'] === false ) {
-			return new \WP_REST_Response(
-				$empty_response
-			);
-		}
-
 		$helper    = new Helper();
 		$variables = $helper->getVariablesGroupedByCategoriesAndGroups(
 			array(
@@ -1360,34 +1321,32 @@ class AllPoints extends Base {
 	}
 
 	/**
-	 * Create API key
+	 * Create connection key
 	 *
 	 * @since 1.6.0
 	 */
 	public function create_api_key( \WP_REST_Request $request ) {
+		unset( $request );
+
 		if ( ! in_array( 'administrator', wp_get_current_user()->roles ) ) {
 			http_response_code( 400 );
 			exit();
 		}
 
-		$key = $request->get_param( 'key' ) ?? '';
-
-		if ( strlen( $key ) < 24 ) {
-			http_response_code( 400 );
-			exit();
-		}
+		$key = \wp_generate_password( 24, false, false ) . rawurlencode( \home_url() );
 
 		\update_option( 'core_framework_api_key', $key, false );
 
 		return new \WP_REST_Response(
 			array(
 				'success' => true,
+				'key'     => $key,
 			)
 		);
 	}
 
 	/**
-	 * Get API key
+	 * Get connection key
 	 *
 	 * @since 1.6.0
 	 */
@@ -1407,7 +1366,7 @@ class AllPoints extends Base {
 	}
 
 	/**
-	 * Delete API key
+	 * Delete connection key
 	 *
 	 * @since 1.6.0
 	 */
@@ -1427,11 +1386,13 @@ class AllPoints extends Base {
 	}
 
 	/**
-	 * Get preset using API key
+	 * Get preset using a connection key
 	 *
 	 * @since 1.6.0
 	 */
 	public function get_preset( \WP_REST_Request $request ) {
+		unset( $request );
+
 		try {
 			$helper = new Helper();
 			$preset = $helper->loadPreset();
@@ -1449,7 +1410,7 @@ class AllPoints extends Base {
 	}
 
 	/**
-	 * Update preset using API key
+	 * Update preset using a connection key
 	 *
 	 * @since 1.6.0
 	 */
@@ -1475,13 +1436,15 @@ class AllPoints extends Base {
 		}
 
 		global $wpdb;
-		$table_name   = $wpdb->prefix . 'core_framework_presets';
+		$table_name   = \esc_sql( $wpdb->prefix . 'core_framework_presets' );
 		$target_table = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
 
 		if ( $target_table != $table_name ) {
 			CoreFramework()->createTable();
 		}
 
+		// The identifier is the WordPress-controlled table prefix plus a fixed plugin suffix.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table_name WHERE id = %s", $preset_id ) );
 
 		if ( $exists ) {
@@ -1542,34 +1505,39 @@ class AllPoints extends Base {
 	public function update_preset_css( \WP_REST_Request $request ) {
 		$body = $request->get_body();
 		$data = json_decode( $body, true );
-		$css  = isset( $data['css'] ) ? $data['css'] : null;
+		$css  = \is_array( $data ) && isset( $data['css'] ) ? $data['css'] : null;
 
-		if ( ! $css || $css == null || $css == '' ) {
-			http_response_code( 400 );
-			exit();
+		if ( ! \is_string( $css ) || '' === $css ) {
+			return new \WP_REST_Response( array( 'message' => 'CSS is required.' ), 400 );
 		}
 
 		$forbidden_css = ['<script', 'expression(', 'javascript:', '@import url("http'];
 		foreach ( $forbidden_css as $pattern ) {
-			if ( stripos( $css, $pattern ) !== false ) {
+			if ( false !== stripos( $css, $pattern ) ) {
 				return new \WP_REST_Response( array( 'message' => 'Invalid CSS content' ), 400 );
 			}
 		}
 
-		$plugin_root = plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE );
+		\update_option( 'core_framework_selected_preset_backup', $css, false );
 
-		if ( is_multisite() ) {
-			$bytes_saved = \file_put_contents( $plugin_root . 'assets/public/css/core_framework_' . get_current_blog_id() . '.css', $css );
-		} else {
-			$bytes_saved = \file_put_contents( $plugin_root . 'assets/public/css/core_framework.css', $css );
+		$bytes_saved = StylesheetStorage::write( $css );
+
+		if ( false === $bytes_saved ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'Unable to write the generated stylesheet to the WordPress uploads directory.',
+				),
+				500
+			);
 		}
 
-		\update_option( 'core_framework_selected_preset_backup', $css, false );
 		CoreFramework()->purge_cache();
 
 		return new \WP_REST_Response(
 			array(
-				'success' => true,
+				'success'     => true,
+				'bytes_saved' => $bytes_saved,
 			)
 		);
 	}
@@ -1599,13 +1567,13 @@ class AllPoints extends Base {
 				'is_active'     => CoreFrameworkOxygen()->is_oxygen(),
 				'class'         => CoreFrameworkOxygen(),
 				'key'           => 'oxygen',
-				'addon_license' => $this->is_addon_enabled( 'oxygen' ),
+				'is_enabled'    => $this->is_addon_enabled( 'oxygen' ),
 			),
 			'bricks' => array(
 				'is_active'     => CoreFrameworkBricks()->is_bricks(),
 				'class'         => CoreFrameworkBricks(),
 				'key'           => 'bricks',
-				'addon_license' => $this->is_addon_enabled( 'bricks' ),
+				'is_enabled'    => $this->is_addon_enabled( 'bricks' ),
 			),
 		);
 
@@ -1613,7 +1581,7 @@ class AllPoints extends Base {
 		$core_setting    = \get_option( 'core_framework_main' );
 
 		foreach ( $builder_array as $builder ) {
-			if ( ! $builder['addon_license'] ) {
+			if ( ! $builder['is_enabled'] ) {
 				continue;
 			}
 
@@ -1663,13 +1631,13 @@ class AllPoints extends Base {
 				'is_active'     => CoreFrameworkOxygen()->is_oxygen(),
 				'class'         => CoreFrameworkOxygen(),
 				'key'           => 'oxygen',
-				'addon_license' => $this->is_addon_enabled( 'oxygen' ),
+				'is_enabled'    => $this->is_addon_enabled( 'oxygen' ),
 			),
 			'bricks' => array(
 				'is_active'     => CoreFrameworkBricks()->is_bricks(),
 				'class'         => CoreFrameworkBricks(),
 				'key'           => 'bricks',
-				'addon_license' => $this->is_addon_enabled( 'bricks' ),
+				'is_enabled'    => $this->is_addon_enabled( 'bricks' ),
 			),
 		);
 
@@ -1681,7 +1649,7 @@ class AllPoints extends Base {
 				continue;
 			}
 
-			if ( ! $builder['addon_license'] ) {
+			if ( ! $builder['is_enabled'] ) {
 				continue;
 			}
 
@@ -1719,7 +1687,7 @@ class AllPoints extends Base {
 				return new \WP_REST_Response(
 					array(
 						'success' => false,
-						'message' => 'Gutenberg addon not active or licensed',
+						'message' => 'Gutenberg integration is not enabled',
 					),
 					200
 				);
@@ -1776,7 +1744,7 @@ class AllPoints extends Base {
 			return new \WP_REST_Response(
 				array(
 					'success' => false,
-					'message' => 'Gutenberg addon not active or licensed',
+					'message' => 'Gutenberg integration is not enabled',
 				),
 				200
 			);
@@ -1826,7 +1794,7 @@ class AllPoints extends Base {
 			return new \WP_REST_Response(
 				array(
 					'success' => false,
-					'message' => 'Oxygen addon not active or licensed',
+					'message' => 'Oxygen integration is not enabled',
 				),
 				200
 			);

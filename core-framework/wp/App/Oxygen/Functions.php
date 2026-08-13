@@ -6,7 +6,7 @@
  * @package   CoreFramework
  * @author    Core Framework <hello@coreframework.com>
  * @copyright 2023 Core Framework
- * @license   EULA + GPLv2
+ * @license   MIT
  * @link      https://coreframework.com
  */
 
@@ -16,7 +16,12 @@ namespace CoreFramework\App\Oxygen;
 
 use CoreFramework\Common\Abstracts\Base;
 use CoreFramework\Helper;
+use CoreFramework\StylesheetStorage;
 use Yabe\Webfont\Utils\Font;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 /**
  * Merge multiple :root selectors into a single one
@@ -126,26 +131,14 @@ class Functions extends Base {
 		}
 
 		$selector = '.oxygen-select-box-option.ng-binding.ng-scope[ng-repeat*="elegantCustomFonts"]';
-		$svg = 'data:image/svg+xml,' . rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31.82 24.84"><defs><linearGradient id="e" x1="3.77" y1="7.44" x2="31.03" y2="24.04" gradientTransform="translate(0 26) scale(1 -1)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#5c68f9"/><stop offset="1" stop-color="#8e97fe"/></linearGradient></defs><rect x="18.78" y="10.68" width="13.03" height="7.07" fill="#fa5e5e"/><path d="m12.42,0C5.56,0,0,5.56,0,12.42h0c0,6.86,5.56,12.42,12.42,12.42h6.37v-7.07h-6.37c-2.95,0-5.35-2.39-5.35-5.35h0c0-2.95,2.39-5.35,5.35-5.35h19.4V0H12.42Z" fill="#7d87fc"/><path d="m7.07,12.42h0c0-1.23.43-2.35,1.13-3.25h-.02L.74,16.6c1.72,4.79,6.3,8.23,11.68,8.23h6.37v-7.07h-6.37c-2.95,0-5.35-2.39-5.35-5.35h0Z" fill="#424ae1"/></svg>');
-		?>
-		<style>
-			<?php echo $selector; ?> {
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-			}
-			<?php echo $selector; ?>::after {
-				content: "";
-				width: 15px;
-				height: 15px;
-				background-image: url('<?php echo $svg; ?>');
-				background-size: contain;
-				background-repeat: no-repeat;
-				margin-left: auto;
-				flex-shrink: 0;
-			}
-		</style>
-		<?php
+		$svg      = 'data:image/svg+xml,' . rawurlencode( '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31.82 24.84"><defs><linearGradient id="e" x1="3.77" y1="7.44" x2="31.03" y2="24.04" gradientTransform="translate(0 26) scale(1 -1)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#5c68f9"/><stop offset="1" stop-color="#8e97fe"/></linearGradient></defs><rect x="18.78" y="10.68" width="13.03" height="7.07" fill="#fa5e5e"/><path d="m12.42,0C5.56,0,0,5.56,0,12.42h0c0,6.86,5.56,12.42,12.42,12.42h6.37v-7.07h-6.37c-2.95,0-5.35-2.39-5.35-5.35h0c0-2.95,2.39-5.35,5.35-5.35h19.4V0H12.42Z" fill="#7d87fc"/><path d="m7.07,12.42h0c0-1.23.43-2.35,1.13-3.25h-.02L.74,16.6c1.72,4.79,6.3,8.23,11.68,8.23h6.37v-7.07h-6.37c-2.95,0-5.35-2.39-5.35-5.35h0Z" fill="#424ae1"/></svg>' );
+		$css      = $selector . '{display:flex;justify-content:space-between;align-items:center;}'
+			. $selector . '::after{content:"";width:15px;height:15px;background-image:url("' . $svg . '");background-size:contain;background-repeat:no-repeat;margin-left:auto;flex-shrink:0;}';
+		$handle   = 'core-framework-oxygen-font-labels';
+
+		wp_register_style( $handle, false, array(), CORE_FRAMEWORK_VERSION );
+		wp_enqueue_style( $handle );
+		wp_add_inline_style( $handle, $css );
 	}
 
 	/**
@@ -203,8 +196,9 @@ class Functions extends Base {
 		if ( $output === false ) {
 			$output = '[]';
 		}
-		$output = \htmlspecialchars($output, \ENT_QUOTES);
-		echo \sprintf('elegantCustomFonts=%s;', $output);
+		// The value is JSON-encoded specifically for this Oxygen JavaScript hook.
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo \sprintf( 'elegantCustomFonts=%s;', $output );
 	}
 
 	/**
@@ -252,8 +246,9 @@ class Functions extends Base {
 	 */
 	public function is_oxygen(): bool {
 		include_once ABSPATH . 'wp-admin/includes/plugin.php';
-		return ( is_plugin_active( 'oxygen/functions.php' ) || ( isset( $_GET['ct_builder'] )
-			&& 'true' === $_GET['ct_builder'] ) || class_exists( 'CT_Component' ) ) || $this->is_oxygen6();
+		$ct_builder = sanitize_text_field( (string) filter_input( INPUT_GET, 'ct_builder', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) );
+
+		return ( is_plugin_active( 'oxygen/functions.php' ) || 'true' === $ct_builder || class_exists( 'CT_Component' ) ) || $this->is_oxygen6();
 	}
 
 	/**
@@ -440,15 +435,13 @@ class Functions extends Base {
 	 * @return void
 	 */
 	public function enqueue() {
-		$helper = new Helper();
-
 		global $wp_styles;
 
 		$wp_styles->add(
 			'core-framework-frontend',
-			$helper->getStylesheetUrl(),
+			StylesheetStorage::get_url(),
 			array(),
-			$helper->getStylesheetVersion(),
+			StylesheetStorage::get_version(),
 			'all'
 		);
 		$wp_styles->do_items( 'core-framework-frontend' );
@@ -466,20 +459,20 @@ class Functions extends Base {
 			return;
 		}
 
- 		$preset = $helper->loadPreset();
- 		$preset_fonts = isset( $preset['modulesData'] ) && isset( $preset['modulesData']['FONTS'] )
- 			? $preset['modulesData']['FONTS']['fonts']
- 			: array();
- 		$css = '';
+		$preset       = $helper->loadPreset();
+		$preset_fonts = isset( $preset['modulesData'] ) && isset( $preset['modulesData']['FONTS'] )
+			? $preset['modulesData']['FONTS']['fonts']
+			: array();
+		$css          = '';
 
- 		foreach ( $preset_fonts as $font ) {
- 				$css .= $font['cssPreview'];
- 		}
+		foreach ( $preset_fonts as $font ) {
+			$css .= $font['cssPreview'];
+		}
 
- 		wp_register_style( 'core-framework-fonts-inline', false );
- 		wp_enqueue_style( 'core-framework-fonts-inline' );
- 		wp_add_inline_style( 'core-framework-fonts-inline', merge_root_selectors( $css ) );
- 	}
+		wp_register_style( 'core-framework-fonts-inline', false, array(), CORE_FRAMEWORK_VERSION );
+		wp_enqueue_style( 'core-framework-fonts-inline' );
+		wp_add_inline_style( 'core-framework-fonts-inline', merge_root_selectors( $css ) );
+	}
 
 	/**
 	 * Enqueue styles in oxygen builder iframe
@@ -487,11 +480,7 @@ class Functions extends Base {
 	 * @return void
 	 */
 	public function enqueue_styles_oxygen_iframe() {
-		$helper  = new Helper();
-		$version = $helper->getStylesheetVersion();
-		$url     = $helper->getStylesheetUrl();
-
-		echo '<link rel="stylesheet" id="core-framework-frontend-css" href="' . esc_url( $url ) . '?ver=' . esc_attr( $version ) . '" type="text/css" media="all">';
+		$this->enqueue();
 	}
 
 	/**
@@ -507,7 +496,7 @@ class Functions extends Base {
 			$js = 'window.core_yabe_fonts = ' . $yabe_fonts . ';';
 			$name = 'core-framework-fonts';
 
-			\wp_register_script( $name, '', array(), strval( time() ) );
+			\wp_register_script( $name, '', array(), CORE_FRAMEWORK_VERSION, true );
 			\wp_enqueue_script( $name );
 			\wp_add_inline_script( $name, $js, 'before' );
 		}
@@ -523,7 +512,7 @@ class Functions extends Base {
 		$js .= 'window.parent.core_variables = ' . ( \wp_json_encode( $variables ) ?: '{}' ) . ';';
 		$colors_script_name = 'core-framework-colors';
 
-		\wp_register_script( $colors_script_name, '', array(), strval( time() ) );
+		\wp_register_script( $colors_script_name, '', array(), CORE_FRAMEWORK_VERSION, true );
 		\wp_enqueue_script( $colors_script_name );
 		\wp_add_inline_script( $colors_script_name, $js, 'before' );
 
@@ -533,7 +522,7 @@ class Functions extends Base {
 			''
 		);
 
-		wp_register_style( $name, false );
+		wp_register_style( $name, false, array(), CORE_FRAMEWORK_VERSION );
 		wp_enqueue_style( $name );
 		wp_add_inline_style(
 			$name,
@@ -587,8 +576,7 @@ class Functions extends Base {
 	 * @since 1.1.2
 	 */
 	public function determine_load(): bool {
-		$option  = get_option( 'core_framework_main', array() );
-		$license = get_option( 'core_framework_oxygen_license_key', false );
-		return isset( $option['oxygen'] ) && $option['oxygen'] && $license;
+		$option = get_option( 'core_framework_main', array() );
+		return isset( $option['oxygen'] ) && $option['oxygen'];
 	}
 }

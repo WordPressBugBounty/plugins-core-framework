@@ -70,8 +70,10 @@ class Helper {
 		global $wpdb;
 
 		$id         = $options['selected_id'];
-		$table_name = $wpdb->prefix . 'core_framework_presets';
+		$table_name = \esc_sql( $wpdb->prefix . 'core_framework_presets' );
 		$row        = $wpdb->get_row(
+			// The identifier is the WordPress-controlled table prefix plus a fixed plugin suffix.
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare( "SELECT * FROM $table_name WHERE id = %s", $id )
 		);
 
@@ -89,18 +91,62 @@ class Helper {
 	}
 
 	/**
-	 * Get stylesheet plain stylesheet url
+	 * Get the generated stylesheet directory details.
+	 *
+	 * WordPress provides a site-specific uploads directory on multisite, so the
+	 * same relative path can safely be used for every site.
+	 *
+	 * @return array{path: string, url: string}
+	 */
+	private function getStylesheetDirectory(): array {
+		$uploads = \wp_upload_dir();
+
+		return array(
+			'path' => \trailingslashit( $uploads['basedir'] ) . 'core-framework/css',
+			'url'  => \trailingslashit( $uploads['baseurl'] ) . 'core-framework/css',
+		);
+	}
+
+	/**
+	 * Get the stylesheet path used by versions through 1.10.4.
+	 */
+	private function getLegacyStylesheetPath(): string {
+		$filename = \is_multisite()
+			? 'core_framework_' . \get_current_blog_id() . '.css'
+			: 'core_framework.css';
+
+		return \plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . 'assets/public/css/' . $filename;
+	}
+
+	/**
+	 * Initialize the WordPress filesystem API.
+	 *
+	 * @return \WP_Filesystem_Base|null
+	 */
+	private function getFilesystem() {
+		global $wp_filesystem;
+
+		if ( ! \function_exists( 'WP_Filesystem' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		if ( ! \WP_Filesystem() || ! \is_object( $wp_filesystem ) ) {
+			return null;
+		}
+
+		return $wp_filesystem;
+	}
+
+	/**
+	 * Get stylesheet URL.
 	 *
 	 * @return string
 	 * @since 1.3.3
 	 */
 	public function getStylesheetUrl(): string {
-		if ( is_multisite() ) {
-			$blog_id = get_current_blog_id();
-			return \plugins_url( '/assets/public/css/core_framework_' . $blog_id . '.css', CORE_FRAMEWORK_ABSOLUTE );
-		}
+		$directory = $this->getStylesheetDirectory();
 
-		return \plugins_url( '/assets/public/css/core_framework.css', CORE_FRAMEWORK_ABSOLUTE );
+		return \trailingslashit( $directory['url'] ) . 'core_framework.css';
 	}
 
 	/**
@@ -110,12 +156,88 @@ class Helper {
 	 * @since 1.3.3
 	 */
 	public function getStylesheetPath(): string {
-		if ( is_multisite() ) {
-			$blog_id = get_current_blog_id();
-			return plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . '/assets/public/css/core_framework_' . $blog_id . '.css';
+		$directory = $this->getStylesheetDirectory();
+
+		return \trailingslashit( $directory['path'] ) . 'core_framework.css';
+	}
+
+	/**
+	 * Persist the generated stylesheet in WordPress-managed storage.
+	 *
+	 * @return int|false Number of bytes saved, or false on failure.
+	 */
+	public function writeStylesheet( string $css ) {
+		$filesystem = $this->getFilesystem();
+
+		if ( null === $filesystem ) {
+			return false;
 		}
 
-		return plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . '/assets/public/css/core_framework.css';
+		$directory = $this->getStylesheetDirectory();
+
+		if ( ! $filesystem->is_dir( $directory['path'] ) && ! \wp_mkdir_p( $directory['path'] ) ) {
+			return false;
+		}
+
+		$written = $filesystem->put_contents(
+			$this->getStylesheetPath(),
+			$css,
+			defined( 'FS_CHMOD_FILE' ) ? FS_CHMOD_FILE : 0644
+		);
+
+		return $written ? \strlen( $css ) : false;
+	}
+
+	/**
+	 * Read the generated stylesheet from WordPress-managed storage.
+	 *
+	 * @return string|false
+	 */
+	public function readStylesheet() {
+		$filesystem = $this->getFilesystem();
+
+		if ( null === $filesystem ) {
+			return false;
+		}
+
+		return $filesystem->get_contents( $this->getStylesheetPath() );
+	}
+
+	/**
+	 * Ensure a generated stylesheet exists, migrating legacy data if possible.
+	 */
+	public function ensureStylesheet(): bool {
+		$filesystem      = $this->getFilesystem();
+		$stylesheet_path = $this->getStylesheetPath();
+
+		if ( null === $filesystem ) {
+			return false;
+		}
+
+		$stylesheet_exists = $filesystem->is_file( $stylesheet_path );
+		$stylesheet_size   = $stylesheet_exists ? $filesystem->size( $stylesheet_path ) : false;
+
+		if ( false !== $stylesheet_size && $stylesheet_size > 0 ) {
+			return true;
+		}
+
+		$css         = '';
+		$legacy_path = $this->getLegacyStylesheetPath();
+
+		if ( $filesystem->is_file( $legacy_path ) && $filesystem->size( $legacy_path ) > 0 ) {
+			$legacy_css = $filesystem->get_contents( $legacy_path );
+			$css        = false !== $legacy_css ? $legacy_css : '';
+		}
+
+		if ( '' === $css ) {
+			$css = (string) \get_option( 'core_framework_selected_preset_backup', '' );
+		}
+
+		if ( '' === $css && $stylesheet_exists ) {
+			return true;
+		}
+
+		return false !== $this->writeStylesheet( $css );
 	}
 
 	/**
@@ -125,17 +247,17 @@ class Helper {
 	 * @since 1.3.3
 	 */
 	public function getStylesheetVersion(): string {
-		if ( is_multisite() ) {
-			$blog_id = get_current_blog_id();
-			$version = strval( \filemtime( plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . '/assets/public/css/core_framework_' . $blog_id . '.css' ) );
-			return $version ?? strval( time() );
+		$stylesheet_path = $this->getStylesheetPath();
+
+		if ( \is_file( $stylesheet_path ) ) {
+			$version = \filemtime( $stylesheet_path );
+
+			if ( false !== $version ) {
+				return (string) $version;
+			}
 		}
 
-		if ( \file_exists( plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . '/assets/public/css/core_framework.css' ) ) {
-			$version = strval( \filemtime( plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . '/assets/public/css/core_framework.css' ) );
-		}
-
-		return $version ?? strval( time() );
+		return CORE_FRAMEWORK_VERSION;
 	}
 
 	/**

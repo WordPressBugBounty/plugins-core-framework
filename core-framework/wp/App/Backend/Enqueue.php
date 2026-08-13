@@ -6,7 +6,7 @@
  * @package   CoreFramework
  * @author    Core Framework <hello@coreframework.com>
  * @copyright 2023 Core Framework
- * @license   EULA + GPLv2
+ * @license   MIT
  * @link      https://coreframework.com
  */
 
@@ -41,8 +41,6 @@ class Enqueue extends Base {
 	}
 
 	private function dequeues(): void {
-		\wp_deregister_script( 'react' );
-
 		\add_filter( 'admin_footer_text', '__return_empty_string', 11 );
 		\add_filter( 'update_footer', '__return_empty_string', 11 );
 		\remove_action( 'wp_body_open', 'wp_global_styles_render_svg_filters' );

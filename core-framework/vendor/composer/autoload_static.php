@@ -4,14 +4,9 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit8642c070558fb7a9197b8ed247d9223f
+class ComposerStaticInitf7f2a85533cebec6c97940d32d72a42f
 {
     public static $prefixLengthsPsr4 = array (
-        'M' =>
-        array (
-            'Micropackage\\Requirements\\' => 26,
-            'Micropackage\\Internationalization\\' => 34,
-        ),
         'C' =>
         array (
             'CoreFramework\\' => 14,
@@ -20,14 +15,6 @@ class ComposerStaticInit8642c070558fb7a9197b8ed247d9223f
     );
 
     public static $prefixDirsPsr4 = array (
-        'Micropackage\\Requirements\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/micropackage/requirements/src',
-        ),
-        'Micropackage\\Internationalization\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/micropackage/internationalization/src',
-        ),
         'CoreFramework\\' =>
         array (
             0 => __DIR__ . '/../..' . '/wp',
@@ -157,35 +144,23 @@ class ComposerStaticInit8642c070558fb7a9197b8ed247d9223f
         'CoreFramework\\Common\\Traits\\Requester' => __DIR__ . '/../..' . '/wp/Common/Traits/Requester.php',
         'CoreFramework\\Common\\Traits\\Singleton' => __DIR__ . '/../..' . '/wp/Common/Traits/Singleton.php',
         'CoreFramework\\Common\\Utils\\Errors' => __DIR__ . '/../..' . '/wp/Common/Utils/Errors.php',
-        'CoreFramework\\Common\\Utils\\Requirements\\RWFile' => __DIR__ . '/../..' . '/wp/Common/Utils/Requirements/RWFile.php',
         'CoreFramework\\Common\\Utils\\Vite' => __DIR__ . '/../..' . '/wp/Common/Utils/Vite.php',
         'CoreFramework\\Compatibility\\Siteground\\Example' => __DIR__ . '/../..' . '/wp/Compatibility/Siteground/Example.php',
         'CoreFramework\\Config\\Classes' => __DIR__ . '/../..' . '/wp/Config/Classes.php',
-        'CoreFramework\\Config\\I18n' => __DIR__ . '/../..' . '/wp/Config/I18n.php',
         'CoreFramework\\Config\\Plugin' => __DIR__ . '/../..' . '/wp/Config/Plugin.php',
         'CoreFramework\\Config\\Requirements' => __DIR__ . '/../..' . '/wp/Config/Requirements.php',
         'CoreFramework\\Config\\Setup' => __DIR__ . '/../..' . '/wp/Config/Setup.php',
         'CoreFramework\\Helper' => __DIR__ . '/../..' . '/wp/Helper.php',
         'CoreFramework\\Scaffold' => __DIR__ . '/../..' . '/wp/Scaffold.php',
-        'Micropackage\\Internationalization\\Internationalization' => __DIR__ . '/..' . '/micropackage/internationalization/src/Internationalization.php',
-        'Micropackage\\Requirements\\Abstracts\\Checker' => __DIR__ . '/..' . '/micropackage/requirements/src/Abstracts/Checker.php',
-        'Micropackage\\Requirements\\Checker\\DocHooks' => __DIR__ . '/..' . '/micropackage/requirements/src/Checker/DocHooks.php',
-        'Micropackage\\Requirements\\Checker\\PHP' => __DIR__ . '/..' . '/micropackage/requirements/src/Checker/PHP.php',
-        'Micropackage\\Requirements\\Checker\\PHPExtensions' => __DIR__ . '/..' . '/micropackage/requirements/src/Checker/PHPExtensions.php',
-        'Micropackage\\Requirements\\Checker\\Plugins' => __DIR__ . '/..' . '/micropackage/requirements/src/Checker/Plugins.php',
-        'Micropackage\\Requirements\\Checker\\SSL' => __DIR__ . '/..' . '/micropackage/requirements/src/Checker/SSL.php',
-        'Micropackage\\Requirements\\Checker\\Theme' => __DIR__ . '/..' . '/micropackage/requirements/src/Checker/Theme.php',
-        'Micropackage\\Requirements\\Checker\\WP' => __DIR__ . '/..' . '/micropackage/requirements/src/Checker/WP.php',
-        'Micropackage\\Requirements\\Interfaces\\Checkable' => __DIR__ . '/..' . '/micropackage/requirements/src/Interfaces/Checkable.php',
-        'Micropackage\\Requirements\\Requirements' => __DIR__ . '/..' . '/micropackage/requirements/src/Requirements.php',
+        'CoreFramework\\StylesheetStorage' => __DIR__ . '/../..' . '/wp/StylesheetStorage.php',
     );
 
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit8642c070558fb7a9197b8ed247d9223f::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit8642c070558fb7a9197b8ed247d9223f::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit8642c070558fb7a9197b8ed247d9223f::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitf7f2a85533cebec6c97940d32d72a42f::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitf7f2a85533cebec6c97940d32d72a42f::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInitf7f2a85533cebec6c97940d32d72a42f::$classMap;
 
         }, null, ClassLoader::class);
     }

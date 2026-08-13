@@ -6,7 +6,7 @@
  * @package   CoreFramework
  * @author    Core Framework <hello@coreframework.com>
  * @copyright 2023 Core Framework
- * @license   EULA + GPLv2
+ * @license   MIT
  * @link      https://coreframework.com
  */
 
@@ -16,6 +16,7 @@ namespace CoreFramework\App\Frontend;
 
 use CoreFramework\Common\Abstracts\Base;
 use CoreFramework\Helper;
+use CoreFramework\StylesheetStorage;
 
 /**
  * Class Enqueue
@@ -39,24 +40,10 @@ class Enqueue extends Base {
 		 * @see Scaffold::__construct
 		 */
 
-		if ( is_multisite() ) {
-			$helper    = new Helper();
-			$file_size = filesize( $helper->getStylesheetPath() );
-
-			if ( $file_size === 0 || $file_size === false ) {
-				file_put_contents( $helper->getStylesheetPath(), get_option( 'core_framework_selected_preset_backup', '' ) );
-			}
-		} else {
-			$file_size = filesize( plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . '/assets/public/css/core_framework.css' );
-
-			if ( $file_size === 0 || $file_size === false ) {
-				file_put_contents( plugin_dir_path( CORE_FRAMEWORK_ABSOLUTE ) . '/assets/public/css/core_framework.css', get_option( 'core_framework_selected_preset_backup', '' ) );
-			}
-		}
+		$helper = new Helper();
+		StylesheetStorage::ensure();
 
 		$option = get_option( 'core_framework_main', array() );
-
-		$helper = new Helper();
 		$preset = $helper->loadPreset();
 
 		if ( isset( $option['has_theme'] ) && $option['has_theme'] === true ) {
@@ -83,8 +70,7 @@ class Enqueue extends Base {
 				add_action( 'wp_head', array( $this, 'enqueue_styles_oxygen' ), 1_000_000 );
 			}
 
-			$license          = get_option( 'core_framework_oxygen_license_key', false );
-			$enable           = isset( $option['oxygen'] ) && $option['oxygen'] && $license;
+				$enable           = isset( $option['oxygen'] ) && $option['oxygen'];
 			// Check for both old Oxygen iframe param and Oxygen 6 (Breakdance-based) iframe param
 			$in_oxygen_iframe = sanitize_text_field( filter_input( INPUT_GET, 'oxygen_iframe', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) );
 			$in_breakdance_iframe = sanitize_text_field( filter_input( INPUT_GET, 'breakdance_iframe', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) );
@@ -132,13 +118,11 @@ class Enqueue extends Base {
 			return;
 		}
 
-		$helper = new Helper();
-
 		\wp_enqueue_style(
 			'core-framework-frontend',
-			$helper->getStylesheetUrl(),
+			StylesheetStorage::get_url(),
 			array(),
-			$helper->getStylesheetVersion(),
+			StylesheetStorage::get_version(),
 			'all'
 		);
 	}
@@ -206,12 +190,12 @@ class Enqueue extends Base {
 			return;
 		}
 
-		$helper  = new Helper();
-		$url     = $helper->getStylesheetUrl();
-		$version = $helper->getStylesheetVersion();
-		$url     = add_query_arg( 'version', $version, $url );
+		$url     = StylesheetStorage::get_url();
+		$version = StylesheetStorage::get_version();
+		$handle  = 'core-framework-frontend-bricks-iframe';
 
-		echo '<link rel="stylesheet" id="core-framework-frontend-bricks-iframe" href="' . esc_url( $url ) . '" type="text/css" media="all" />';
+		wp_enqueue_style( $handle, $url, array(), $version, 'all' );
+		wp_print_styles( $handle );
 	}
 
 	/**
@@ -220,9 +204,8 @@ class Enqueue extends Base {
 	 * @since 0.0.1
 	 */
 	public function enqueue_styles_oxygen(): void {
-		$option            = get_option( 'core_framework_main', array() );
-		$license           = get_option( 'core_framework_oxygen_license_key', false );
-		$enable            = isset( $option['oxygen'] ) && $option['oxygen'] && $license;
+			$option            = get_option( 'core_framework_main', array() );
+			$enable            = isset( $option['oxygen'] ) && $option['oxygen'];
 
 		// Check for old Oxygen iframe param
 		$in_oxygen_iframe  = sanitize_text_field( filter_input( INPUT_GET, 'oxygen_iframe', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) );
@@ -261,9 +244,8 @@ class Enqueue extends Base {
 	 * @return void
 	 */
 	public function enqueue_oxygen6_scripts(): void {
-		$option  = get_option( 'core_framework_main', array() );
-		$license = get_option( 'core_framework_oxygen_license_key', false );
-		$enable  = isset( $option['oxygen'] ) && $option['oxygen'] && ! empty( $license );
+			$option = get_option( 'core_framework_main', array() );
+			$enable = isset( $option['oxygen'] ) && $option['oxygen'];
 
 		// Check if we're in the Oxygen 6 builder context
 		$in_breakdance_iframe = sanitize_text_field( filter_input( INPUT_GET, 'breakdance_iframe', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) );

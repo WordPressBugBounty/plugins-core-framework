@@ -6,7 +6,7 @@
  * @package   CoreFramework
  * @author    Core Framework <hello@coreframework.com>
  * @copyright 2023 Core Framework
- * @license   EULA + GPLv2
+ * @license   MIT
  * @link      https://coreframework.com
  */
 
@@ -19,7 +19,6 @@ use CoreFramework\Common\Abstracts\Base;
 use CoreFramework\Common\Traits\Requester;
 use CoreFramework\Common\Utils\Errors;
 use CoreFramework\Config\Classes;
-use CoreFramework\Config\I18n;
 use CoreFramework\Config\Requirements;
 
 /**
@@ -66,13 +65,6 @@ final class Scaffold extends Base {
 	protected $requirements;
 
 	/**
-	 * I18n class object
-	 *
-	 * @var I18n
-	 */
-	protected $i18n;
-
-	/**
 	 * Scaffold constructor that
 	 * - Checks compatibility/plugin requirements
 	 * - Defines the locale for this plugin for internationalization
@@ -86,7 +78,6 @@ final class Scaffold extends Base {
 		parent::__construct();
 		$this->startExecutionTimer();
 		$this->checkRequirements();
-		$this->setLocale();
 		$this->getClassLoader( $composer );
 		$this->loadClasses( Classes::get() );
 		$this->debugger();
@@ -102,18 +93,6 @@ final class Scaffold extends Base {
 		$this->requirements = new Requirements();
 		$this->requirements->check();
 		$this->scaffold['check_requirements'] = $this->stopExecutionTimer( $set_timer );
-	}
-
-	/**
-	 * Define the locale for this plugin for internationalization.
-	 *
-	 * @since 0.0.0
-	 */
-	public function setLocale(): void {
-		$set_timer  = microtime( true );
-		$this->i18n = new I18n();
-		$this->i18n->load();
-		$this->scaffold['set_locale'] = $this->stopExecutionTimer( $set_timer );
 	}
 
 	/**
@@ -361,33 +340,13 @@ final class Scaffold extends Base {
 	 * Visual presentation of the classes that are loaded
 	 */
 	public function debugger(): void {
-		if ( $this->scaffold['debug'] === true ) {
-			$this->scaffold['execution_time'] =
-				'Total execution time in seconds: ' . ( microtime( true ) - $this->scaffold['execution_time']['start'] );
-			\add_action(
-				'shutdown',
-				function (): void {
-					ini_set( 'highlight.comment', '#969896; font-style: italic' );
-					ini_set( 'highlight.default', '#FFFFFF' );
-					ini_set( 'highlight.html', '#D16568; font-size: 13px; padding: 0; display: block;' );
-					ini_set( 'highlight.keyword', '#7FA3BC; font-weight: bold; padding:0;' );
-					ini_set( 'highlight.string', '#F2C47E' );
-					// printf(
-					// \wp_kses(
-					// '<div style="background-color: #1C1E21; padding:5px; position: fixed; z-index:9999; bottom:0;">%s</div>',
-					// array(
-					// 'div' => array(
-					// 'style' => array(),
-					// ),
-					// )
-					// ),
-					// highlight_string(
-					// "<?php\n\n" . var_export( $this->scaffold, true ),
-					// true
-					// )
-					// );
-				}
-			);
+		if ( true !== $this->scaffold['debug'] ) {
+			return;
 		}
+
+		$this->scaffold['execution_time'] =
+			'Total execution time in seconds: ' . ( microtime( true ) - $this->scaffold['execution_time']['start'] );
+
+		\do_action( 'core_framework_debug_data', $this->scaffold );
 	}
 }

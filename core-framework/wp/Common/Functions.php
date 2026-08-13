@@ -6,7 +6,7 @@
  * @package   CoreFramework
  * @author    Core Framework <hello@coreframework.com>
  * @copyright 2023 Core Framework
- * @license   EULA + GPLv2
+ * @license   MIT
  * @link      https://coreframework.com
  */
 
@@ -105,16 +105,15 @@ class Functions extends Base {
 	public function createTable(): void {
 		global $wpdb;
 		$charset_collate = $wpdb->get_charset_collate();
-		$table_name      = $wpdb->prefix . 'core_framework_presets';
-		$presetsTableSql = $wpdb->prepare(
-			"CREATE TABLE IF NOT EXISTS {$table_name} (
+		$table_name      = \esc_sql( $wpdb->prefix . 'core_framework_presets' );
+		// The identifier is the WordPress-controlled table prefix plus a fixed plugin suffix.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$presetsTableSql = "CREATE TABLE IF NOT EXISTS {$table_name} (
 				id varchar(50) NOT NULL,
 				time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
 				data longtext NOT NULL,
 				PRIMARY KEY  (id)
-			) {$charset_collate};",
-			array()
-		);
+			) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $presetsTableSql );
@@ -161,14 +160,11 @@ class Functions extends Base {
 		$options_to_delete = array(
 			'main',
 			'db_version',
-			'free_license',
 			'selected_preset_backup',
 			'grouped_classes',
 			'colors',
 			'oxygen_css_helper',
 			'variables',
-			'bricks_license_key',
-			'oxygen_license_key',
 		);
 
 		foreach ( $options_to_delete as $option ) {
@@ -185,8 +181,10 @@ class Functions extends Base {
 	public function removeTable(): void {
 		global $wpdb;
 
-		$table_name = $wpdb->prefix . 'core_framework_presets';
-		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %s', $table_name ) );
+		$table_name = \esc_sql( $wpdb->prefix . 'core_framework_presets' );
+		// The identifier is the WordPress-controlled table prefix plus a fixed plugin suffix.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange
+		$wpdb->query( "DROP TABLE IF EXISTS {$table_name}" );
 	}
 
 	/**
@@ -232,7 +230,7 @@ class Functions extends Base {
 		$js   = 'window.core_framework_connector = ' . \wp_json_encode( $core_framework_connector ) . ';';
 		$name = 'core-framework-builders-connector';
 
-		\wp_register_script( $name, '', array(), strval( time() ) );
+		\wp_register_script( $name, '', array(), CORE_FRAMEWORK_VERSION, true );
 		\wp_enqueue_script( $name );
 		\wp_add_inline_script( $name, $js, 'before' );
 	}
@@ -610,6 +608,8 @@ class Functions extends Base {
 
 	public function purge_cache() {
 		if ( \is_plugin_active( 'litespeed-cache/litespeed-cache.php' ) ) {
+			// This is LiteSpeed Cache's documented third-party purge hook.
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 			\do_action( 'litespeed_purge_all' );
 		}
 	}

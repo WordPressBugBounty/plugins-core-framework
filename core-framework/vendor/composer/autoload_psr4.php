@@ -6,8 +6,6 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    'Micropackage\\Requirements\\' => array($vendorDir . '/micropackage/requirements/src'),
-    'Micropackage\\Internationalization\\' => array($vendorDir . '/micropackage/internationalization/src'),
     'CoreFramework\\' => array($baseDir . '/wp'),
     'Composer\\Installers\\' => array($vendorDir . '/composer/installers/src/Composer/Installers'),
 );
