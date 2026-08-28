@@ -186,17 +186,15 @@ class Functions extends Base {
 			return;
 		}
 
-		$preset = $helper->loadPreset();
-		$preset_fonts = isset( $preset['modulesData'] ) && isset( $preset['modulesData']['FONTS'] )
-			? $preset['modulesData']['FONTS']['fonts']
-			: array();
+		$preset_fonts = $helper->getEnabledFonts();
 		$customCoreFontFamilies = array_column($preset_fonts, 'family');
 
 		$output = \wp_json_encode($customCoreFontFamilies);
 		if ( $output === false ) {
 			$output = '[]';
 		}
-		// The value is JSON-encoded specifically for this Oxygen JavaScript hook.
+		$output = \htmlspecialchars( $output, \ENT_QUOTES );
+		// The JSON is HTML-escaped for Oxygen's double-quoted ng-init attribute.
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo \sprintf( 'elegantCustomFonts=%s;', $output );
 	}
@@ -459,10 +457,7 @@ class Functions extends Base {
 			return;
 		}
 
-		$preset       = $helper->loadPreset();
-		$preset_fonts = isset( $preset['modulesData'] ) && isset( $preset['modulesData']['FONTS'] )
-			? $preset['modulesData']['FONTS']['fonts']
-			: array();
+		$preset_fonts = $helper->getEnabledFonts();
 		$css          = '';
 
 		foreach ( $preset_fonts as $font ) {
